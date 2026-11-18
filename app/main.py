@@ -35,26 +35,31 @@ def import_uf(rows: list[dict] = Body(...)):
     New stations are geocoded with HERE; known ones keep their coordinates. Price = discounted price."""
     key = os.environ.get("HERE_API_KEY")
     if not key: raise HTTPException(400, "HERE_API_KEY not set (needed to geocode station addresses)")
-    n = geo = skipped = 0
+    n = geo = skipped = wrong = 0
     with db.conn() as c:
         for r in rows:
             try:
-                price = float(r["price"]); sid = "UF:" + r["name"].strip()
+                price = float(r["price"]); sid = "UF:" + r["name"].strip(); st = r["st"].strip().upper()
                 seen = dt.datetime.strptime(r["updated"], "%m/%d/%Y").date().isoformat()
+                if not 1 < price < 15: raise ValueError("price out of range")      # e.g. $0.00 listings
             except Exception:
                 skipped += 1; continue
-            if not c.execute("SELECT 1 FROM stations WHERE sid=%s AND lat IS NOT NULL", (sid,)).fetchone():
+            # (re)geocode unless we already hold coordinates verified to be in the station's own state
+            if not c.execute("SELECT 1 FROM stations WHERE sid=%s AND lat IS NOT NULL AND geo_state=%s", (sid, st)).fetchone():
                 try:
-                    lat, lng = map(float, planner._geocode(f"{r['address']}, {r['city']}, {r['st']}", key).split(","))
+                    lat, lng, gs = planner._geocode_full(f"{r['address']}, {r['city']}, {st}", key)
                 except Exception:
                     skipped += 1; continue
                 geo += 1
-                c.execute("""INSERT INTO stations(sid,name,city,st,lat,lng,source) VALUES (%s,%s,%s,%s,%s,%s,'uf')
-                             ON CONFLICT (sid) DO UPDATE SET lat=EXCLUDED.lat, lng=EXCLUDED.lng, source='uf'""",
-                          (sid, r["name"], r["city"], r["st"], lat, lng))
+                if gs != st:                                   # HERE matched a place in another state: do not trust it
+                    wrong += 1
+                    c.execute("UPDATE stations SET lat=NULL, lng=NULL WHERE sid=%s", (sid,)); continue
+                c.execute("""INSERT INTO stations(sid,name,city,st,lat,lng,source,geo_state) VALUES (%s,%s,%s,%s,%s,%s,'uf',%s)
+                             ON CONFLICT (sid) DO UPDATE SET lat=EXCLUDED.lat, lng=EXCLUDED.lng, source='uf', geo_state=EXCLUDED.geo_state""",
+                          (sid, r["name"], r["city"], st, lat, lng, gs))
             c.execute("""INSERT INTO prices VALUES (%s,%s,%s) ON CONFLICT (sid, seen) DO UPDATE SET price=EXCLUDED.price""", (sid, seen, price))
             n += 1
-    return {"stored": n, "geocoded": geo, "skipped": skipped}
+    return {"stored": n, "geocoded": geo, "wrong_state": wrong, "skipped": skipped}
 
 @app.post("/api/sync/airtable")
 def sync_airtable():

@@ -59,13 +59,17 @@ def _truck():
             "vehicle[length]": g("TRUCK_LENGTH_CM", "2200"), "vehicle[grossWeight]": g("TRUCK_WEIGHT_KG", "36287"),
             "vehicle[axleCount]": g("TRUCK_AXLES", "5")}
 
-def _geocode(q, key):
+def _geocode_full(q, key):
     r = httpx.get("https://geocode.search.hereapi.com/v1/geocode", params={"q": q, "in": "countryCode:USA", "limit": 1, "apiKey": key}, timeout=30)
     r.raise_for_status()
     it = r.json().get("items") or []
     if not it: raise ValueError(f"HERE could not find address: {q}")
     p = it[0]["position"]
-    return f"{p['lat']},{p['lng']}"
+    return p["lat"], p["lng"], (it[0].get("address", {}).get("stateCode") or "").upper()
+
+def _geocode(q, key):
+    lat, lng, _ = _geocode_full(q, key)
+    return f"{lat},{lng}"
 
 def route_here(origin, dest, key):
     prm = {"transportMode": "truck", "origin": _geocode(origin, key), "destination": _geocode(dest, key),
