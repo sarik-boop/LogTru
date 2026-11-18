@@ -1,6 +1,6 @@
 """Fuel planner: cheapest fuel stops along a route (DP over stations on the corridor).
 Logic taken from the validated analysis (6.5 MPG, 200 gal tank, 30 gal reserve)."""
-import math, httpx
+import math, os, httpx
 
 MPG, TANK, RESERVE, START, MINFILL, STEP, CORRIDOR_MI = 6.5, 200, 30, 110, 50, 5, 5.0
 
@@ -24,6 +24,58 @@ def decode(p):
             else: lng += d
         pts.append((lat/1e5, lng/1e5))
     return pts
+
+
+_T = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+_V = {c: i for i, c in enumerate(_T)}
+
+def decode_flex(p):
+    """HERE flexible polyline -> [(lat, lng)]"""
+    vals, i = [], 0
+    while i < len(p):
+        r = s = 0
+        while True:
+            b = _V[p[i]]; i += 1
+            r |= (b & 0x1f) << s; s += 5
+            if not b & 0x20: break
+        vals.append(r)
+    hdr = vals[1]
+    prec = hdr & 15; third = (hdr >> 4) & 7
+    f = 10 ** prec; n = 3 if third else 2
+    pts, cur = [], [0, 0, 0]
+    body = vals[2:]
+    for j in range(0, len(body) - n + 1, n):
+        for k in range(n):
+            v = body[j + k]
+            cur[k] += ~(v >> 1) if v & 1 else v >> 1
+        pts.append((cur[0] / f, cur[1] / f))
+    return pts
+
+# Truck profile (override in .env). Defaults: 5-axle tractor-trailer, 13.6 ft x 8.5 ft, 80,000 lb.
+def _truck():
+    g = lambda k, d: os.environ.get(k, d)
+    return {"vehicle[type]": "tractor", "vehicle[trailerCount]": g("TRUCK_TRAILERS", "1"),
+            "vehicle[height]": g("TRUCK_HEIGHT_CM", "415"), "vehicle[width]": g("TRUCK_WIDTH_CM", "259"),
+            "vehicle[length]": g("TRUCK_LENGTH_CM", "2200"), "vehicle[grossWeight]": g("TRUCK_WEIGHT_KG", "36287"),
+            "vehicle[axleCount]": g("TRUCK_AXLES", "5")}
+
+def _geocode(q, key):
+    r = httpx.get("https://geocode.search.hereapi.com/v1/geocode", params={"q": q, "in": "countryCode:USA", "limit": 1, "apiKey": key}, timeout=30)
+    r.raise_for_status()
+    it = r.json().get("items") or []
+    if not it: raise ValueError(f"HERE could not find address: {q}")
+    p = it[0]["position"]
+    return f"{p['lat']},{p['lng']}"
+
+def route_here(origin, dest, key):
+    prm = {"transportMode": "truck", "origin": _geocode(origin, key), "destination": _geocode(dest, key),
+           "return": "polyline,summary", "apiKey": key, **_truck()}
+    r = httpx.get("https://router.hereapi.com/v8/routes", params=prm, timeout=60)
+    r.raise_for_status()
+    secs = r.json()["routes"][0]["sections"]
+    pts = []
+    for sec in secs: pts += decode_flex(sec["polyline"])
+    return dict(pts=pts, meters=sum(x["summary"]["length"] for x in secs), seconds=sum(x["summary"]["duration"] for x in secs))
 
 def route(origin, dest, key):
     r = httpx.post("https://routes.googleapis.com/directions/v2:computeRoutes", timeout=60,
@@ -70,11 +122,14 @@ def dp_fuel(total_mi, sts, start=START):
     return None
 
 def plan(origin, dest, stations, key, start=START):
-    r = route(origin, dest, key)
-    pts = decode(r["polyline"]["encodedPolyline"])
+    if os.environ.get("HERE_API_KEY"):
+        r = route_here(origin, dest, os.environ["HERE_API_KEY"]); pts, meters, secs = r["pts"], r["meters"], r["seconds"]; src = "HERE truck"
+    else:
+        g = route(origin, dest, key)
+        pts, meters, secs, src = decode(g["polyline"]["encodedPolyline"]), g["distanceMeters"], int(g["staticDuration"].rstrip("s")), "Google car (no truck rules)"
     sts, poly_mi = stations_on(pts, stations)
-    miles = r["distanceMeters"] / 1609.344
+    miles = meters / 1609.344
     scale = miles / poly_mi
     for s in sts: s["mile"] *= scale
     res = dp_fuel(miles, sts, start)
-    return dict(miles=round(miles, 1), hours=round(int(r["staticDuration"].rstrip("s"))/3600, 2), stations_on_route=len(sts), fuel=res)
+    return dict(miles=round(miles, 1), hours=round(secs/3600, 2), router=src, stations_on_route=len(sts), fuel=res)

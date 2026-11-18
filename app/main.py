@@ -49,11 +49,11 @@ def make_plan(load: str, send: bool = False):
         l = c.execute("SELECT * FROM loads WHERE load=%s", (load,)).fetchone()
     if not l: raise HTTPException(404, "load not found")
     key = os.environ.get("GOOGLE_MAPS_KEY")
-    if not key: raise HTTPException(400, "GOOGLE_MAPS_KEY not set")
+    if not key and not os.environ.get("HERE_API_KEY"): raise HTTPException(400, "Set HERE_API_KEY (or GOOGLE_MAPS_KEY) in .env")
     try:
         res = planner.plan(l["origin"], l["destination"], _stations(), key)
     except httpx.HTTPStatusError as e:
-        raise HTTPException(502, f"Google Routes API said {e.response.status_code}: {e.response.text[:300]}")
+        raise HTTPException(502, f"Routing API said {e.response.status_code}: {e.response.text[:300]}")
     except Exception as e:
         raise HTTPException(500, f"Planner error: {e}")
     msg = telegram.format_plan(load, l["origin"], l["destination"], res)
