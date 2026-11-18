@@ -1,5 +1,5 @@
 import os, csv, io, json, datetime as dt, httpx
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import FastAPI, UploadFile, HTTPException, Body
 from fastapi.responses import HTMLResponse
 import db, planner, telegram, airtable
 
@@ -28,6 +28,33 @@ async def import_fills(file: UploadFile):
             c.execute("INSERT INTO stations VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING", (p[0], p[1], p[2], p[3], float(p[4]), float(p[5])))
             c.execute("INSERT INTO prices VALUES (%s,%s,%s) ON CONFLICT DO NOTHING", (p[0], p[6], float(p[7]))); n += 1
     return {"imported": n}
+
+@app.post("/api/import/uf")
+def import_uf(rows: list[dict] = Body(...)):
+    """Rows from the United Fuel robot: name, price (discounted), retail, updated (MM/DD/YYYY), st, city, address.
+    New stations are geocoded with HERE; known ones keep their coordinates. Price = discounted price."""
+    key = os.environ.get("HERE_API_KEY")
+    if not key: raise HTTPException(400, "HERE_API_KEY not set (needed to geocode station addresses)")
+    n = geo = skipped = 0
+    with db.conn() as c:
+        for r in rows:
+            try:
+                price = float(r["price"]); sid = "UF:" + r["name"].strip()
+                seen = dt.datetime.strptime(r["updated"], "%m/%d/%Y").date().isoformat()
+            except Exception:
+                skipped += 1; continue
+            if not c.execute("SELECT 1 FROM stations WHERE sid=%s AND lat IS NOT NULL", (sid,)).fetchone():
+                try:
+                    lat, lng = map(float, planner._geocode(f"{r['address']}, {r['city']}, {r['st']}", key).split(","))
+                except Exception:
+                    skipped += 1; continue
+                geo += 1
+                c.execute("""INSERT INTO stations VALUES (%s,%s,%s,%s,%s,%s)
+                             ON CONFLICT (sid) DO UPDATE SET lat=EXCLUDED.lat, lng=EXCLUDED.lng""",
+                          (sid, r["name"], r["city"], r["st"], lat, lng))
+            c.execute("""INSERT INTO prices VALUES (%s,%s,%s) ON CONFLICT (sid, seen) DO UPDATE SET price=EXCLUDED.price""", (sid, seen, price))
+            n += 1
+    return {"stored": n, "geocoded": geo, "skipped": skipped}
 
 @app.post("/api/sync/airtable")
 def sync_airtable():
