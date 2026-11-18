@@ -17,6 +17,7 @@ services:
   robot:
     build: ./robot
     env_file: .env
+    volumes: [robotstate:/state]
     profiles: ["robot"]          # not started by default: docker compose run --rm robot
   caddy:
     image: caddy:2
@@ -28,5 +29,6 @@ services:
       - caddy_data:/data
     depends_on: [app]
 volumes:
+  robotstate:
   pgdata:
   caddy_data:

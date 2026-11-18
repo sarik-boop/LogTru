@@ -1,7 +1,8 @@
-"""QuickManage robot (UNTESTED against the live login page): logs in, reads the Trips list, upserts into Airtable 'Active Loads'.
+"""QuickManage robot (login step untested): logs in, reads the Trips list, upserts into Airtable 'Active Loads'.
 Credentials come from .env (QM_USER, QM_PASS). Run: docker compose run --rm robot"""
 import os, re, sys, datetime as dt, httpx
 from playwright.sync_api import sync_playwright
+import common
 
 BASE, TABLE = "app8zoPghGYT4p0CZ", "tbl0xTquarjpevIHD"
 URL = "https://app.quickmanage.com"
@@ -45,18 +46,20 @@ def upsert(records):
                   "records": [{"fields": {**f, "Pulled": dt.date.today().isoformat()}} for f in records[i:i + 10]]})
         r.raise_for_status()
 
+TRIPS = os.environ.get("QM_TRIPS_URL", URL + "/dispatching/trips/main/active")
+
+def login(pg):
+    pg.get_by_placeholder(re.compile("email|user", re.I)).first.fill(os.environ["QM_USER"]); common.pause()
+    pg.locator("input[type=password]").first.fill(os.environ["QM_PASS"]); common.pause()
+    pg.keyboard.press("Enter")
+
 def main():
+    common.gate("qm", hours=os.environ.get("QM_HOURS", "6-22"))
     with sync_playwright() as p:
-        b = p.chromium.launch(); pg = b.new_page()
-        pg.goto(URL + "/login")
-        pg.get_by_placeholder(re.compile("email|user", re.I)).first.fill(os.environ["QM_USER"])
-        pg.locator("input[type=password]").first.fill(os.environ["QM_PASS"])
-        pg.keyboard.press("Enter")
-        pg.wait_for_url(re.compile("dashboard|dispatching"), timeout=60000)
-        pg.get_by_role("link", name="Loads & Trips").click()
+        b, pg = common.open_session(p, "qm", TRIPS, r"app\.quickmanage\.com/dispatching", login)
         pg.wait_for_selector("text=Active Loads", timeout=60000); pg.wait_for_timeout(4000)
         recs = parse(pg.inner_text("body"))
-        print(f"parsed {len(recs)} loads")
+        print(f"parsed {len(recs)} loads", flush=True)
         if recs: upsert(recs)
         b.close()
 

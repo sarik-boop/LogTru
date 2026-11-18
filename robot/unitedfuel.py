@@ -3,6 +3,7 @@ and sends it to the app (POST /api/import/uf). The app geocodes new stations and
 Credentials from .env (UF_USER, UF_PASS). Run: docker compose run --rm robot python unitedfuel.py"""
 import os, re, httpx
 from playwright.sync_api import sync_playwright
+import common
 
 URL = "https://cabinet.united-fuel.com"
 APP = os.environ.get("APP_URL", "http://app:8000")
@@ -16,16 +17,16 @@ def read_page(pg):
             out.append(dict(name=c[0], retail=c[1], price=c[2], updated=c[3], st=c[4], city=c[5], address=c[6]))
     return out
 
+def login(pg):
+    pg.get_by_placeholder("Email").fill(os.environ["UF_USER"]); common.pause()
+    pg.locator("input[type=password]").first.fill(os.environ["UF_PASS"]); common.pause()
+    pg.keyboard.press("Enter")
+
 def main():
+    common.gate("uf")
     with sync_playwright() as p:
-        b = p.chromium.launch(); pg = b.new_page(viewport={"width": 1500, "height": 900})
-        pg.goto(URL + "/login")
-        pg.get_by_placeholder("Email").fill(os.environ["UF_USER"])
-        pg.locator("input[type=password]").first.fill(os.environ["UF_PASS"])
-        pg.keyboard.press("Enter")
-        pg.wait_for_url(re.compile("dashboard"), timeout=60000)
-        pg.goto(URL + "/dashboard/station"); pg.wait_for_timeout(3000)
-        pg.get_by_text("List", exact=True).first.click(); pg.wait_for_selector(ROWS, timeout=60000)
+        b, pg = common.open_session(p, "uf", URL + "/dashboard/station", r"/dashboard", login)
+        common.pause(); pg.get_by_text("List", exact=True).first.click(); pg.wait_for_selector(ROWS, timeout=60000)
         pg.locator(".ant-pagination-options .ant-select").click()
         pg.get_by_text("100 / page").click(); pg.wait_for_timeout(2500)
         allrows, seen = [], set()
@@ -37,7 +38,7 @@ def main():
             print(f"page {page_no}: {len(rows)} rows, total {len(allrows)}", flush=True)
             nxt = pg.locator("li.ant-pagination-next")
             if nxt.get_attribute("aria-disabled") == "true": break
-            nxt.click(); pg.wait_for_timeout(1500)
+            common.pause(1.5, 4); nxt.click(); pg.wait_for_timeout(1500)
         b.close()
     print(f"read {len(allrows)} stations; sending to app (geocoding new ones can take a few minutes)")
     for i in range(0, len(allrows), 100):
