@@ -1,4 +1,4 @@
-import os, csv, io, json, datetime as dt, httpx
+import os, csv, io, json, time, threading, datetime as dt, httpx
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, HTTPException, Body
 from fastapi.responses import HTMLResponse
@@ -175,8 +175,7 @@ def _stations():
     with db.conn() as c:
         return c.execute("SELECT sid, name, city, st, lat, lng, price FROM current_stations").fetchall()
 
-@app.post("/api/plan/{load}")
-def make_plan(load: str, send: bool = False):
+def plan_load(load: str, send: bool = False):
     with db.conn() as c:
         l = c.execute("SELECT * FROM loads WHERE load=%s", (load,)).fetchone()
     if not l: raise HTTPException(404, "load not found")
@@ -194,6 +193,46 @@ def make_plan(load: str, send: bool = False):
     with db.conn() as c:
         c.execute("INSERT INTO plans(load,result,sent) VALUES (%s,%s,%s)", (load, json.dumps(res), send))
     return out
+
+@app.post("/api/plan/{load}")
+def make_plan(load: str, send: bool = False):
+    return plan_load(load, send)
+
+# ---- automatic planning of new loads ----
+CLOSED = ("In Transit", "Completed", "Cancelled", "Canceled", "Delivered", "Invoiced", "Closed")
+_failed: dict[str, float] = {}      # load -> time of last failed attempt (retry after RETRY_H)
+AUTO_EVERY_S, AUTO_BATCH, RETRY_H = 600, 10, 6
+
+def auto_plan_once():
+    """Plans open loads that have no plan yet (max AUTO_BATCH per pass, failed ones retried after RETRY_H). Returns how many were planned."""
+    if not (os.environ.get("HERE_API_KEY") or os.environ.get("GOOGLE_MAPS_KEY")): return 0
+    with db.conn() as c:
+        if not c.execute("SELECT 1 FROM current_stations LIMIT 1").fetchone(): return 0
+        todo = c.execute("""SELECT l.load FROM loads l WHERE NOT EXISTS (SELECT 1 FROM plans p WHERE p.load = l.load)
+                            AND coalesce(l.status,'') <> ALL(%s) ORDER BY l.load DESC""", (list(CLOSED),)).fetchall()
+    n = 0
+    for r in todo:
+        if n >= AUTO_BATCH: break
+        if time.time() - _failed.get(r["load"], 0) < RETRY_H * 3600: continue
+        try:
+            plan_load(r["load"]); n += 1; _failed.pop(r["load"], None)
+        except Exception as e:
+            _failed[r["load"]] = time.time(); print(f"auto-plan {r['load']} failed: {getattr(e, 'detail', e)}", flush=True)
+    return n
+
+def _auto_loop():
+    time.sleep(60)
+    while True:
+        try:
+            n = auto_plan_once()
+            if n: print(f"auto-planned {n} loads", flush=True)
+        except Exception as e:
+            print("auto-plan pass failed:", e, flush=True)
+        time.sleep(AUTO_EVERY_S)
+
+@app.on_event("startup")
+def _start_auto():
+    if os.environ.get("AUTO_PLAN", "1") == "1": threading.Thread(target=_auto_loop, daemon=True).start()
 
 @app.get("/api/status")
 def status():

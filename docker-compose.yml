@@ -26,6 +26,16 @@ services:
     restart: unless-stopped
     volumes: [robotstate:/state]
     depends_on: [app]
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes: ["./backups:/backups"]
+    depends_on: [db]
+    entrypoint: ["/bin/sh", "-c"]
+    # a compressed dump every 24 h (the first one right away); dumps older than 14 days are deleted
+    command: ['while true; do pg_dump -h db -U logtru logtru | gzip > /backups/logtru-$$(date +%F).sql.gz.tmp && mv /backups/logtru-$$(date +%F).sql.gz.tmp /backups/logtru-$$(date +%F).sql.gz; find /backups -name "logtru-*.sql.gz" -mtime +14 -delete; sleep 86400; done']
   caddy:
     image: caddy:2
     env_file: .env
