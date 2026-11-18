@@ -5,6 +5,8 @@ import os
 
 FUEL_MIN = float(os.environ.get("FUEL_STOP_MIN", "30"))
 DRIVE_MAX, WINDOW, BREAK_AFTER, REST_H = 11.0, 14.0, 8.0, 10.0
+if os.environ.get("HOS_RULES", "0") != "1":  # default: pure driving time plus fuel stops, no breaks or sleep
+    DRIVE_MAX = WINDOW = BREAK_AFTER = 1e9
 EPS = 1e-9
 
 def schedule(miles, drive_h, stops, parking=()):
