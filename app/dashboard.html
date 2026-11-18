@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LogTru</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+<style>
+:root{--tp:#1c1d1f;--ts:#505967;--tt:#6f7988;--tm:#8f99a8;--bg:#fff;--bgs:#fafafb;--bgm:#f3f4f6;--inv:#202124;--bd:#d3d8df;--bds:#eeeff1;--ac:#266df0;
+--gbg:#e0fced;--gbd:#cbf7e1;--gtx:#0a7a4d;--bbg:#e8f0fe;--bbd:#cfdffc;--btx:#1f5bcc;--ybg:#fdf6c8;--ybd:#f5e58a;--ytx:#7a5d00;--rbg:#ffeceb;--rbd:#ffd3d2;--rtx:#c4302e;--xbg:#f3f4f6;--xbd:#e4e7ec;--xtx:#505967;
+--sh:0 1px 3px 0 rgba(0,0,0,.04),0 0 2px 0 rgba(28,40,64,.18);--shm:0 0 1px 1px rgba(0,22,62,.01),0 4px 12px -1px rgba(0,22,62,.08),0 1px 3px -1px rgba(0,22,62,.18)}
+*{box-sizing:border-box}
+body{margin:0;font:500 14px/20px Inter,system-ui,-apple-system,sans-serif;letter-spacing:-.01em;color:var(--tp);background:var(--bgs);-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+header{height:48px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;padding:0 24px;position:sticky;top:0;z-index:5}
+header .logo{width:16px;height:16px;border-radius:4px;background:var(--inv)}
+header h1{font-size:14px;margin:0;font-weight:500}
+header .sp{flex:1}
+main{max-width:1200px;margin:0 auto;padding:24px}
+.intro{font-size:18px;line-height:22px;font-weight:500;margin:0 0 4px;letter-spacing:-.01em}
+.intro span{color:var(--tm)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin:20px 0 24px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;box-shadow:var(--sh)}
+.stat{padding:16px 20px;border-right:1px solid var(--bds)}.stat:last-child{border-right:0}
+.stat .l{font-size:12px;color:var(--tt)}.stat .v{font-size:24px;line-height:32px;font-weight:500;letter-spacing:-.02em}
+.stat .n{font-size:12px;color:var(--tt);font-weight:400}
+.btn{height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--bd);background:#fff;color:#2e3238;font:inherit;box-shadow:var(--sh);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--bgm)}.btn:disabled{opacity:.5;cursor:default}
+.btn.dark{background:var(--inv);color:#f3f4f6;border-color:#3a3f47;box-shadow:inset .2px .2px 2px rgba(255,255,255,.1),0 1.5px 1.5px rgba(0,0,0,.25)}.btn.dark:hover{background:#2c2e33}
+.btn.sm{height:26px;padding:0 10px;border-radius:8px;font-size:13px}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+input.search{height:32px;border:1px solid var(--bd);border-radius:8px;padding:0 10px;font:inherit;width:280px;background:#fff}
+input.search:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px rgba(38,109,240,.15)}
+.msg{font-size:13px;color:var(--tt);margin-left:4px}
+.card{background:var(--bg);border:1px solid var(--bd);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
+table{border-collapse:collapse;width:100%}
+th{height:36px;text-align:left;font-size:13px;color:var(--ts);font-weight:500;padding:0 12px;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{height:40px;padding:0 12px;border-bottom:1px solid var(--bds);white-space:nowrap;max-width:360px;overflow:hidden;text-overflow:ellipsis}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bgs)}tbody tr.sel{background:#f5f8fe}
+td.r,th.r{text-align:right}
+.mut{color:var(--tt);font-weight:400}
+.arrow{color:var(--tm);margin:0 6px}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--xbd);background:var(--xbg);color:var(--xtx);font-size:12px}
+.tag.g{background:var(--gbg);border-color:var(--gbd);color:var(--gtx)}.tag.b{background:var(--bbg);border-color:var(--bbd);color:var(--btx)}
+.tag.y{background:var(--ybg);border-color:var(--ybd);color:var(--ytx)}.tag.r{background:var(--rbg);border-color:var(--rbd);color:var(--rtx)}
+.panel{position:fixed;top:0;right:0;bottom:0;width:440px;max-width:100%;background:var(--bg);border-left:1px solid var(--bd);box-shadow:var(--shm);transform:translateX(105%);transition:transform .22s ease-out;z-index:10;display:flex;flex-direction:column}
+.panel.open{transform:none}
+.ph{padding:16px 20px;border-bottom:1px solid var(--bds);display:flex;gap:12px;align-items:flex-start}
+.ph .eb{font-size:12px;color:var(--tt)}.ph h2{font-size:16px;line-height:22px;margin:0;font-weight:600;letter-spacing:-.01em}
+.ph .rt{font-size:13px;color:var(--ts);font-weight:400;margin-top:2px}
+.pb{padding:16px 20px;overflow:auto;flex:1}
+.kv{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--bd);border-radius:10px;margin-bottom:16px}
+.kv>div{padding:10px 14px;border-bottom:1px solid var(--bds)}.kv>div:nth-child(odd){border-right:1px solid var(--bds)}.kv>div:nth-last-child(-n+2){border-bottom:0}
+.kv .l{font-size:12px;color:var(--tt)}.kv .v{font-size:16px;line-height:22px}
+h3{font-size:13px;color:var(--ts);margin:0 0 8px;font-weight:500}
+.stops{border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.stops td,.stops th{height:36px;padding:0 10px;font-size:13px}
+.empty{padding:24px 8px;text-align:center;color:var(--tt);font-weight:400}
+.empty b{color:var(--tp);font-weight:500;display:block;margin-bottom:4px}
+.skel{height:14px;border-radius:4px;background:var(--bgm);margin:10px 0}
+.x{margin-left:auto;border:0;background:transparent;font-size:18px;color:var(--tt);cursor:pointer;line-height:1}
+.note{font-size:12px;color:var(--tt);font-weight:400}
+@media(max-width:720px){.stats{grid-template-columns:1fr}.stat{border-right:0;border-bottom:1px solid var(--bds)}main{padding:16px}input.search{width:100%}}
+</style></head><body>
+<header><div class="logo"></div><h1>LogTru</h1><span class="tag">Fuel plans</span><div class="sp"></div>
+<button class="btn" id="sync" onclick="syncAT()">Sync from Airtable</button></header>
+<main>
+<p class="intro">Fuel plans for active loads. <span>Pick a load to see the cheapest legal fuel stops for a truck.</span></p>
+<div class="stats">
+<div class="stat"><div class="l">Loads</div><div class="v num" id="s-loads">-</div><div class="n">synced from Airtable</div></div>
+<div class="stat"><div class="l">Stations with fresh prices</div><div class="v num" id="s-st">-</div><div class="n">United Fuel, last 14 days</div></div>
+<div class="stat"><div class="l">Newest price</div><div class="v num" id="s-new">-</div><div class="n" id="s-age"></div></div>
+</div>
+<div class="bar"><input class="search" id="q" placeholder="Search loads, cities, states" oninput="render()"><span class="msg" id="m"></span></div>
+<div class="card"><table><thead><tr><th>Load</th><th>Route</th><th>Pickup</th><th class="r">Rate</th><th></th></tr></thead><tbody id="rows"><tr><td colspan="5"><div class="skel"></div><div class="skel"></div><div class="skel"></div></td></tr></tbody></table></div>
+</main>
+<aside class="panel" id="panel"><div class="ph"><div><div class="eb" id="p-eb"></div><h2 id="p-t"></h2><div class="rt" id="p-r"></div></div><button class="x" onclick="closeP()" aria-label="Close">&times;</button></div><div class="pb" id="p-b"></div></aside>
+<script>
+const $=id=>document.getElementById(id);let LOADS=[],CUR=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const usd=(n,d=0)=>n==null?'':'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+async function status(){try{const s=await (await fetch('/api/status')).json();$('s-loads').textContent=s.loads;$('s-st').textContent=s.stations.toLocaleString();
+ $('s-new').textContent=s.newest||'none';if(s.newest){const d=Math.round((Date.now()-new Date(s.newest+'T12:00:00'))/864e5);$('s-age').textContent=d<=0?'today':d+' day'+(d>1?'s':'')+' old'}}catch(e){}}
+async function load(){LOADS=await (await fetch('/api/loads')).json();render()}
+function render(){const q=$('q').value.toLowerCase().trim();const rs=LOADS.filter(l=>!q||(l.load+' '+l.origin+' '+l.destination).toLowerCase().includes(q));
+ $('rows').innerHTML=rs.length?rs.map(l=>`<tr id="r-${esc(l.load)}" class="${CUR===l.load?'sel':''}"><td class="num">${esc(l.load)}</td><td>${esc(l.origin)}<span class="arrow">&rarr;</span>${esc(l.destination)}</td><td class="mut">${esc(l.pickup||'')}</td><td class="r num">${usd(l.rate)}</td><td class="r"><button class="btn sm" onclick="plan('${esc(l.load)}',false)">Plan</button></td></tr>`).join(''):`<tr><td colspan="5"><div class="empty"><b>No loads yet</b>Press Sync from Airtable to load them.</div></td></tr>`}
+function closeP(){$('panel').classList.remove('open');CUR=null;render()}
+async function plan(id,send){CUR=id;render();const l=LOADS.find(x=>x.load===id)||{};
+ $('p-eb').textContent='Load '+id;$('p-t').textContent='Fuel plan';$('p-r').textContent=(l.origin||'')+' to '+(l.destination||'');
+ $('p-b').innerHTML='<div class="skel"></div><div class="skel" style="width:70%"></div><div class="skel" style="width:85%"></div><p class="note">Routing for a truck, then finding the cheapest stops. This takes a few seconds.</p>';$('panel').classList.add('open');
+ let j={},ok=false;try{const r=await fetch('/api/plan/'+encodeURIComponent(id)+'?send='+send,{method:'POST'});ok=r.ok;j=await r.json().catch(()=>({detail:'Error '+r.status}))}catch(e){j={detail:String(e)}}
+ if(!ok){$('p-b').innerHTML=`<div class="empty"><b>Could not plan this load</b>${esc(j.message||j.detail||'Unknown error')}</div>`;return}
+ const p=j.plan,f=p.fuel;let h=`<div class="kv"><div><div class="l">Distance</div><div class="v num">${p.miles.toLocaleString()} mi</div></div><div><div class="l">Driving time</div><div class="v num">${p.hours} h</div></div>`;
+ if(f){const pct=l.rate?Math.round(f.cost/l.rate*100):null;h+=`<div><div class="l">Fuel cost</div><div class="v num">${usd(f.cost)}</div></div><div><div class="l">Per mile${pct!=null?' / share of rate':''}</div><div class="v num">${usd(f.cost/p.miles,2)}${pct!=null?' / '+pct+'%':''}</div></div>`}
+ h+='</div>';
+ if(f){h+=`<h3>Fuel stops <span class="note">(${f.plan.length}, ${f.plan.reduce((a,s)=>a+s.gallons,0)} gal bought)</span></h3><div class="stops"><table><thead><tr><th>Mile</th><th>Station</th><th class="r">Gal</th><th class="r">Price</th></tr></thead><tbody>`+f.plan.map(s=>`<tr><td class="num">${s.mile}</td><td>${esc(s.station)}<div class="mut" style="font-size:12px">${esc((s.city||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))}, ${esc(s.st)}</div></td><td class="r num">${s.gallons}</td><td class="r num">${usd(s.price,3)}</td></tr>`).join('')+'</tbody></table></div>'}
+ else h+=`<div class="empty"><b>No fuel plan found</b>Only ${p.stations_on_route} priced stations lie within 5 miles of this route, not enough to plan legal stops. Refresh United Fuel prices or widen coverage.</div>`;
+ h+=`<p>${p.router&&p.router.startsWith('HERE')?'<span class="tag g">Truck routing</span>':'<span class="tag y">Car routing, no truck rules</span>'} <span class="tag">${p.stations_on_route} stations on route</span></p>`;
+ h+=`<p class="note">Assumes 6.5 MPG, 200 gal tank, 30 gal reserve, starting with 110 gal and arriving with the same. Prices are United Fuel discounted prices. Stops are a suggestion; drivers follow posted restrictions.</p>`;
+ h+=`<button class="btn" onclick="plan('${esc(id)}',true)">${send?'Sent to Telegram':'Send to Telegram'}</button>`;
+ $('p-b').innerHTML=h}
+async function syncAT(){const b=$('sync');b.disabled=true;$('m').textContent='Syncing...';try{const r=await fetch('/api/sync/airtable',{method:'POST'});const j=await r.json();$('m').textContent=r.ok?`Synced ${j.loads} loads`:('Error: '+(j.detail||''));await load();status()}catch(e){$('m').textContent='Error: '+e}b.disabled=false}
+status();load();
+</script></body></html>
