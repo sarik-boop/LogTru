@@ -1,4 +1,4 @@
-import os, csv, io, json, datetime as dt
+import os, csv, io, json, datetime as dt, httpx
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse
 import db, planner, telegram, airtable
@@ -50,7 +50,12 @@ def make_plan(load: str, send: bool = False):
     if not l: raise HTTPException(404, "load not found")
     key = os.environ.get("GOOGLE_MAPS_KEY")
     if not key: raise HTTPException(400, "GOOGLE_MAPS_KEY not set")
-    res = planner.plan(l["origin"], l["destination"], _stations(), key)
+    try:
+        res = planner.plan(l["origin"], l["destination"], _stations(), key)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(502, f"Google Routes API said {e.response.status_code}: {e.response.text[:300]}")
+    except Exception as e:
+        raise HTTPException(500, f"Planner error: {e}")
     msg = telegram.format_plan(load, l["origin"], l["destination"], res)
     out = dict(plan=res, message=msg)
     if send: out["telegram"] = telegram.send(msg)
@@ -66,6 +71,6 @@ def home():
 <script>
 async function go(){const r=await (await fetch('/api/loads')).json();const t=document.getElementById('t');
 for(const l of r){const tr=t.insertRow();tr.innerHTML=`<td>${l.load}<td>${l.origin} to ${l.destination}<td>${l.unit||''}<td><button onclick="plan('${l.load}',false)">Plan</button> <button onclick="plan('${l.load}',true)">Plan + Telegram</button>`}}
-async function plan(id,send){o.textContent='Planning...';const r=await fetch('/api/plan/'+id+'?send='+send,{method:'POST'});const j=await r.json();o.textContent=j.message||JSON.stringify(j)}
+async function plan(id,send){o.textContent='Planning...';const r=await fetch('/api/plan/'+id+'?send='+send,{method:'POST'});let j={};try{j=await r.json()}catch(e){};o.textContent=j.message||j.detail||('Error '+r.status)}
 async function sync(){m.textContent='Syncing...';const r=await fetch('/api/sync/airtable',{method:'POST'});const j=await r.json();m.textContent=r.ok?('Loaded '+j.loads+' loads, '+j.stations+' stations. Reload the page.'):('Error: '+(j.detail||''))}
 go()</script>"""
