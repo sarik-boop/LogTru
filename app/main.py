@@ -100,6 +100,33 @@ def import_trucks(rows: list[dict] = Body(...)):
                     c.execute("UPDATE trucks SET city=%s, st=%s WHERE unit=%s", (city, st, unit))
     return {"trucks": n, "located": placed}
 
+@app.post("/api/fuel/import")
+def import_fuel(rows: list[dict] = Body(...)):
+    """QuickManage fuel purchases. Re-sending the same purchase never duplicates it."""
+    import hashlib
+    new = 0
+    with db.conn() as c:
+        for r in rows:
+            try:
+                key = hashlib.md5(f"{r['tdate']}|{r['txn']}|{r['equip']}|{r['gallons']}|{r['diesel_amt']}".encode()).hexdigest()
+                cur = c.execute("""INSERT INTO fuel_txns(key,tdate,txn,equip,driver,merchant,city,st,gallons,ppg,diesel_amt,def_amt,fee,total,discount,paid)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (key) DO UPDATE SET driver=EXCLUDED.driver, discount=EXCLUDED.discount, paid=EXCLUDED.paid""",
+                    (key, r["tdate"], r["txn"], r["equip"], r.get("driver"), r.get("merchant"), r.get("city"), r.get("st"), r["gallons"], r["ppg"],
+                     r.get("diesel_amt"), r.get("def_amt"), r.get("fee"), r.get("total"), r.get("discount"), r.get("paid")))
+                new += 1
+            except KeyError:
+                continue
+        total = c.execute("SELECT count(*) AS n FROM fuel_txns").fetchone()["n"]
+    return {"received": new, "total_in_database": total}
+
+@app.get("/api/fuel")
+def list_fuel(equip: str | None = None, since: str | None = None):
+    q, a = "SELECT * FROM fuel_txns WHERE gallons >= 5", []
+    if equip: q += " AND equip=%s"; a.append(equip)
+    if since: q += " AND tdate >= %s"; a.append(since)
+    with db.conn() as c:
+        return c.execute(q + " ORDER BY tdate DESC, equip", a).fetchall()
+
 @app.delete("/api/trucks/{unit}")
 def delete_truck(unit: str):
     with db.conn() as c:

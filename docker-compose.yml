@@ -19,6 +19,13 @@ services:
     env_file: .env
     volumes: [robotstate:/state]
     profiles: ["robot"]          # not started by default: docker compose run --rm robot
+  scheduler:
+    build: ./robot
+    command: ["python3", "schedule.py"]
+    env_file: .env
+    restart: unless-stopped
+    volumes: [robotstate:/state]
+    depends_on: [app]
   caddy:
     image: caddy:2
     env_file: .env
