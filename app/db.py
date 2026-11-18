@@ -20,6 +20,18 @@ WHERE s.lat IS NOT NULL AND l.price BETWEEN 1 AND 15 AND l.seen >= now() - inter
   AND NOT (s.source <> 'uf' AND EXISTS (SELECT 1 FROM stations u WHERE u.source='uf' AND u.lat IS NOT NULL
            AND abs(u.lat - s.lat) < 0.004 AND abs(u.lng - s.lng) < 0.005));
 CREATE TABLE IF NOT EXISTS plans (id serial PRIMARY KEY, load text, created timestamptz DEFAULT now(), result jsonb, sent boolean DEFAULT false);
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS broker text;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS broker_load text;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS status text;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS origin_facility text;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS dest_facility text;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS deadhead_mi float;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS loaded_mi float;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS weight_lbs float;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS truck text;
+ALTER TABLE loads ADD COLUMN IF NOT EXISTS assign_info jsonb;
+CREATE TABLE IF NOT EXISTS trucks (unit text PRIMARY KEY, driver text, city text, st text, lat float, lng float, free_at timestamptz);
+CREATE TABLE IF NOT EXISTS geo (q text PRIMARY KEY, lat float, lng float);
 """
 
 def conn():

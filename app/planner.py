@@ -1,6 +1,7 @@
 """Fuel planner: cheapest fuel stops along a route (DP over stations on the corridor).
 Logic taken from the validated analysis (6.5 MPG, 200 gal tank, 30 gal reserve)."""
 import math, os, httpx
+from urllib.parse import quote
 
 MPG, TANK, RESERVE, START, MINFILL, STEP, CORRIDOR_MI = 6.5, 200, 30, 110, 50, 5, 5.0
 
@@ -121,9 +122,15 @@ def dp_fuel(total_mi, sts, start=START):
             for buy in range(MINFILL, int(TANK - g) + 1, STEP):
                 g3 = round(g + buy, 1); c = v[0] + buy*s["price"]
                 if g3 not in nxt or c < nxt[g3][0]:
-                    nxt[g3] = (c, v[1]+1, v[2] + [dict(station=s["name"], city=s["city"], st=s["st"], gallons=buy, price=s["price"], mile=round(s["mile"]))])
+                    nxt[g3] = (c, v[1]+1, v[2] + [dict(station=s["name"], city=s["city"], st=s["st"], gallons=buy, price=s["price"], mile=round(s["mile"]), lat=s.get("lat"), lng=s.get("lng"))])
         cost = nxt
     return None
+
+def nav_url(origin, dest, stops):
+    """Google Maps directions link: origin, fuel stops as waypoints, destination. Opens in the Maps app on a phone."""
+    wp = "|".join(f"{s['lat']:.5f},{s['lng']:.5f}" for s in stops[:9] if s.get("lat") is not None)
+    u = f"https://www.google.com/maps/dir/?api=1&origin={quote(origin)}&destination={quote(dest)}&travelmode=driving"
+    return u + (f"&waypoints={quote(wp)}" if wp else "")
 
 def plan(origin, dest, stations, key, start=START):
     if os.environ.get("HERE_API_KEY"):
@@ -136,4 +143,5 @@ def plan(origin, dest, stations, key, start=START):
     scale = miles / poly_mi
     for s in sts: s["mile"] *= scale
     res = dp_fuel(miles, sts, start)
-    return dict(miles=round(miles, 1), hours=round(secs/3600, 2), router=src, stations_on_route=len(sts), fuel=res)
+    return dict(miles=round(miles, 1), hours=round(secs/3600, 2), router=src, stations_on_route=len(sts), fuel=res,
+                nav=nav_url(origin, dest, res["plan"] if res else []))

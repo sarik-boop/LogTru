@@ -26,12 +26,18 @@ def sync():
         for rec in _rows(T_LOADS):
             f = rec["fields"]
             if not f.get("QM Trip #"): continue
-            c.execute("""INSERT INTO loads(load,origin,destination,pickup,delivery,unit,rate,source)
-                         VALUES (%s,%s,%s,%s,%s,%s,%s,'airtable')
+            c.execute("""INSERT INTO loads(load,origin,destination,pickup,delivery,unit,rate,source,broker,broker_load,status,
+                                           origin_facility,dest_facility,deadhead_mi,loaded_mi,weight_lbs)
+                         VALUES (%s,%s,%s,%s,%s,%s,%s,'airtable',%s,%s,%s,%s,%s,%s,%s,%s)
                          ON CONFLICT (load) DO UPDATE SET origin=EXCLUDED.origin, destination=EXCLUDED.destination,
-                         pickup=EXCLUDED.pickup, delivery=EXCLUDED.delivery, rate=EXCLUDED.rate""",
+                         pickup=EXCLUDED.pickup, delivery=EXCLUDED.delivery, rate=EXCLUDED.rate, broker=EXCLUDED.broker,
+                         broker_load=EXCLUDED.broker_load, status=EXCLUDED.status, origin_facility=EXCLUDED.origin_facility,
+                         dest_facility=EXCLUDED.dest_facility, deadhead_mi=EXCLUDED.deadhead_mi, loaded_mi=EXCLUDED.loaded_mi,
+                         weight_lbs=EXCLUDED.weight_lbs""",
                       (f["QM Trip #"], f.get("Origin"), f.get("Destination"), f.get("Pickup (local)"),
-                       f.get("Delivery (local)"), None, f.get("Rate"))); n_loads += 1
+                       f.get("Delivery (local)"), None, f.get("Rate"), f.get("Broker"), f.get("Broker Load #"), f.get("Status"),
+                       f.get("Origin Facility"), f.get("Destination Facility"), f.get("Deadhead mi"), f.get("Loaded mi"),
+                       f.get("Weight lbs"))); n_loads += 1
         for rec in _rows(T_STATIONS):
             f = rec["fields"]
             if f.get("Latitude") is None or f.get("Retail $/gal") is None: continue

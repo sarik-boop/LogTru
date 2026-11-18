@@ -16,4 +16,5 @@ def format_plan(load, origin, dest, p):
         lines.append(f"Planned fuel: ${f['cost']:,.0f} for {f['gallons']} gal")
         for s in f["plan"]:
             lines.append(f"- mile {s['mile']}: {s['station']} ({s['city'].title()}, {s['st']}) buy {s['gallons']} gal at ${s['price']:.3f}")
+    if p.get("nav"): lines.append("Navigate: " + p["nav"])
     return "\n".join(lines)

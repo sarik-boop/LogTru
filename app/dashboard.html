@@ -1,102 +1,236 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LogTru</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--tp:#1c1d1f;--ts:#505967;--tt:#6f7988;--tm:#8f99a8;--bg:#fff;--bgs:#fafafb;--bgm:#f3f4f6;--inv:#202124;--bd:#d3d8df;--bds:#eeeff1;--ac:#266df0;
---gbg:#e0fced;--gbd:#cbf7e1;--gtx:#0a7a4d;--bbg:#e8f0fe;--bbd:#cfdffc;--btx:#1f5bcc;--ybg:#fdf6c8;--ybd:#f5e58a;--ytx:#7a5d00;--rbg:#ffeceb;--rbd:#ffd3d2;--rtx:#c4302e;--xbg:#f3f4f6;--xbd:#e4e7ec;--xtx:#505967;
---sh:0 1px 3px 0 rgba(0,0,0,.04),0 0 2px 0 rgba(28,40,64,.18);--shm:0 0 1px 1px rgba(0,22,62,.01),0 4px 12px -1px rgba(0,22,62,.08),0 1px 3px -1px rgba(0,22,62,.18)}
+/* Interstate guide-sign green, lane-marking amber, Overpass (open face drawn from highway lettering). */
+:root{--ink:#14201A;--ink2:#46544C;--ink3:#5E6D65;--paper:#F2F4F0;--white:#fff;--line:#D5DBD3;--line2:#E6EAE4;--head:#EAEEE8;
+--sign:#00633D;--sign-d:#004D2F;--amber:#F2B705;--amberbg:#FFF1BF;--ambertx:#6B4E00;--red:#B3261E;--redbg:#FBE5E3;--okbg:#DDF1E4;--oktx:#0B5A33;--sel:#E4F0E9}
 *{box-sizing:border-box}
-body{margin:0;font:500 14px/20px Inter,system-ui,-apple-system,sans-serif;letter-spacing:-.01em;color:var(--tp);background:var(--bgs);-webkit-font-smoothing:antialiased}
+html{scrollbar-color:#B9C2B9 var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/22px Overpass,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:var(--amber);color:var(--ink)}
 .num{font-variant-numeric:tabular-nums}
-header{height:48px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;padding:0 24px;position:sticky;top:0;z-index:5}
-header .logo{width:16px;height:16px;border-radius:4px;background:var(--inv)}
-header h1{font-size:14px;margin:0;font-weight:500}
+.mut{color:var(--ink3);font-size:13px;line-height:18px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:4px}
+header{background:var(--sign);color:#fff;border-bottom:4px solid var(--amber);display:flex;align-items:stretch;gap:28px;padding:0 24px;min-height:56px}
+.brand{font-weight:700;font-size:20px;letter-spacing:-.01em;align-self:center}
+nav{display:flex;gap:4px;overflow-x:auto}
+nav a{color:#D6EBDD;text-decoration:none;font-weight:600;padding:0 14px;display:flex;align-items:center;border-bottom:4px solid transparent;margin-bottom:-4px;white-space:nowrap}
+nav a:hover{color:#fff}nav a[aria-current=page]{color:#fff;border-bottom-color:#fff}
 header .sp{flex:1}
-main{max-width:1200px;margin:0 auto;padding:24px}
-.intro{font-size:18px;line-height:22px;font-weight:500;margin:0 0 4px;letter-spacing:-.01em}
-.intro span{color:var(--tm)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);margin:20px 0 24px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;box-shadow:var(--sh)}
-.stat{padding:16px 20px;border-right:1px solid var(--bds)}.stat:last-child{border-right:0}
-.stat .l{font-size:12px;color:var(--tt)}.stat .v{font-size:24px;line-height:32px;font-weight:500;letter-spacing:-.02em}
-.stat .n{font-size:12px;color:var(--tt);font-weight:400}
-.btn{height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--bd);background:#fff;color:#2e3238;font:inherit;box-shadow:var(--sh);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.btn:hover{background:var(--bgm)}.btn:disabled{opacity:.5;cursor:default}
-.btn.dark{background:var(--inv);color:#f3f4f6;border-color:#3a3f47;box-shadow:inset .2px .2px 2px rgba(255,255,255,.1),0 1.5px 1.5px rgba(0,0,0,.25)}.btn.dark:hover{background:#2c2e33}
-.btn.sm{height:26px;padding:0 10px;border-radius:8px;font-size:13px}
-.bar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
-input.search{height:32px;border:1px solid var(--bd);border-radius:8px;padding:0 10px;font:inherit;width:280px;background:#fff}
-input.search:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px rgba(38,109,240,.15)}
-.msg{font-size:13px;color:var(--tt);margin-left:4px}
-.card{background:var(--bg);border:1px solid var(--bd);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
+.only-xs{display:none}
+.hbtn{align-self:center;background:transparent;border:1.5px solid rgba(255,255,255,.7);color:#fff;border-radius:6px;min-height:40px;padding:0 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.hbtn:hover{background:var(--sign-d)}.hbtn:disabled{opacity:.6;cursor:default}
+main{max-width:1360px;margin:0 auto;padding:24px}
+.top{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:26px;line-height:30px;margin:0;font-weight:700;letter-spacing:-.015em}
+.top p{margin:0;color:var(--ink2)}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.tools .sp{flex:1}
+.btn{min-height:40px;padding:0 14px;border-radius:6px;border:1px solid #A9B3AA;background:var(--white);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background-color .12s}
+.btn:hover{background:#E9EEE8}.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.55;cursor:default}
+.btn.main{background:var(--ink);border-color:var(--ink);color:#fff}.btn.main:hover{background:#25352C}
+.btn.sm{min-height:34px;padding:0 10px;font-size:14px}
+.btn.quiet{border-color:transparent;background:transparent;color:var(--ink2)}.btn.quiet:hover{background:#E4E9E2}
+.btn.danger{color:var(--red)}
+input.f,select.f,textarea.f{min-height:40px;border:1px solid #A9B3AA;border-radius:6px;padding:0 10px;background:#fff;width:100%}
+textarea.f{padding:8px 10px;min-height:96px;resize:vertical}
+input.f:focus,select.f:focus,textarea.f:focus{outline:3px solid var(--amber);outline-offset:0;border-color:var(--ink)}
+input.f.search{width:300px;max-width:100%}
+.wrap{background:var(--white);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
 table{border-collapse:collapse;width:100%}
-th{height:36px;text-align:left;font-size:13px;color:var(--ts);font-weight:500;padding:0 12px;border-bottom:1px solid var(--bd);white-space:nowrap}
-td{height:40px;padding:0 12px;border-bottom:1px solid var(--bds);white-space:nowrap;max-width:360px;overflow:hidden;text-overflow:ellipsis}
+th{background:var(--head);text-align:left;font-size:13px;font-weight:600;color:var(--ink2);padding:0 14px;height:40px;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:8px 14px;border-bottom:1px solid var(--line2);vertical-align:middle;height:56px}
 tr:last-child td{border-bottom:0}
-tbody tr:hover{background:var(--bgs)}tbody tr.sel{background:#f5f8fe}
+tbody tr.row{cursor:pointer}tbody tr.row:hover{background:#F7F9F5}tbody tr.sel{background:var(--sel)!important}
 td.r,th.r{text-align:right}
-.mut{color:var(--tt);font-weight:400}
-.arrow{color:var(--tm);margin:0 6px}
-.tag{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:6px;border:1px solid var(--xbd);background:var(--xbg);color:var(--xtx);font-size:12px}
-.tag.g{background:var(--gbg);border-color:var(--gbd);color:var(--gtx)}.tag.b{background:var(--bbg);border-color:var(--bbd);color:var(--btx)}
-.tag.y{background:var(--ybg);border-color:var(--ybd);color:var(--ytx)}.tag.r{background:var(--rbg);border-color:var(--rbd);color:var(--rtx)}
-.panel{position:fixed;top:0;right:0;bottom:0;width:440px;max-width:100%;background:var(--bg);border-left:1px solid var(--bd);box-shadow:var(--shm);transform:translateX(105%);transition:transform .22s ease-out;z-index:10;display:flex;flex-direction:column}
-.panel.open{transform:none}
-.ph{padding:16px 20px;border-bottom:1px solid var(--bds);display:flex;gap:12px;align-items:flex-start}
-.ph .eb{font-size:12px;color:var(--tt)}.ph h2{font-size:16px;line-height:22px;margin:0;font-weight:600;letter-spacing:-.01em}
-.ph .rt{font-size:13px;color:var(--ts);font-weight:400;margin-top:2px}
-.pb{padding:16px 20px;overflow:auto;flex:1}
-.kv{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--bd);border-radius:10px;margin-bottom:16px}
-.kv>div{padding:10px 14px;border-bottom:1px solid var(--bds)}.kv>div:nth-child(odd){border-right:1px solid var(--bds)}.kv>div:nth-last-child(-n+2){border-bottom:0}
-.kv .l{font-size:12px;color:var(--tt)}.kv .v{font-size:16px;line-height:22px}
-h3{font-size:13px;color:var(--ts);margin:0 0 8px;font-weight:500}
-.stops{border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px}
-.stops td,.stops th{height:36px;padding:0 10px;font-size:13px}
-.empty{padding:24px 8px;text-align:center;color:var(--tt);font-weight:400}
-.empty b{color:var(--tp);font-weight:500;display:block;margin-bottom:4px}
-.skel{height:14px;border-radius:4px;background:var(--bgm);margin:10px 0}
-.x{margin-left:auto;border:0;background:transparent;font-size:18px;color:var(--tt);cursor:pointer;line-height:1}
-.note{font-size:12px;color:var(--tt);font-weight:400}
-@media(max-width:720px){.stats{grid-template-columns:1fr}.stat{border-right:0;border-bottom:1px solid var(--bds)}main{padding:16px}input.search{width:100%}}
-</style></head><body>
-<header><div class="logo"></div><h1>LogTru</h1><span class="tag">Fuel plans</span><div class="sp"></div>
-<button class="btn" id="sync" onclick="syncAT()">Sync from Airtable</button></header>
-<main>
-<p class="intro">Fuel plans for active loads. <span>Pick a load to see the cheapest legal fuel stops for a truck.</span></p>
-<div class="stats">
-<div class="stat"><div class="l">Loads</div><div class="v num" id="s-loads">-</div><div class="n">synced from Airtable</div></div>
-<div class="stat"><div class="l">Stations with fresh prices</div><div class="v num" id="s-st">-</div><div class="n">United Fuel, last 14 days</div></div>
-<div class="stat"><div class="l">Newest price</div><div class="v num" id="s-new">-</div><div class="n" id="s-age"></div></div>
-</div>
-<div class="bar"><input class="search" id="q" placeholder="Search loads, cities, states" oninput="render()"><span class="msg" id="m"></span></div>
-<div class="card"><table><thead><tr><th>Load</th><th>Route</th><th>Pickup</th><th class="r">Rate</th><th></th></tr></thead><tbody id="rows"><tr><td colspan="5"><div class="skel"></div><div class="skel"></div><div class="skel"></div></td></tr></tbody></table></div>
-</main>
-<aside class="panel" id="panel"><div class="ph"><div><div class="eb" id="p-eb"></div><h2 id="p-t"></h2><div class="rt" id="p-r"></div></div><button class="x" onclick="closeP()" aria-label="Close">&times;</button></div><div class="pb" id="p-b"></div></aside>
+.plate{display:inline-block;background:var(--sign);color:#fff;font-weight:700;font-size:14px;line-height:20px;padding:3px 10px;border-radius:4px;outline:1.5px solid #fff;outline-offset:-4px;min-width:64px;text-align:center}
+.cl{font-weight:600}
+.rt{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+.rt svg{flex:none;color:var(--ink3)}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0 8px;border-radius:4px;font-size:13px;font-weight:600;background:var(--head);color:var(--ink2)}
+.tag.ok{background:var(--okbg);color:var(--oktx)}.tag.warn{background:var(--amberbg);color:var(--ambertx)}.tag.bad{background:var(--redbg);color:var(--red)}
+.fuel b{font-size:16px}
+.ibtn{width:40px;height:40px;display:inline-grid;place-items:center;border-radius:6px;border:0;background:transparent;color:var(--ink2);cursor:pointer;text-decoration:none}
+.ibtn:hover{background:#E4E9E2;color:var(--ink)}
+.empty{padding:40px 16px;text-align:center;color:var(--ink2)}.empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+.skel{height:16px;border-radius:3px;background:linear-gradient(90deg,#E6EAE4,#F2F4F0,#E6EAE4);margin:18px 14px}
+.callout{background:var(--amberbg);color:var(--ambertx);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.callout.ok{background:var(--okbg);color:var(--oktx)}
+.callout ul{margin:6px 0 0;padding-left:18px}
+.form{display:grid;grid-template-columns:1fr 1.6fr 1.6fr 90px auto;gap:12px;align-items:end;margin-bottom:12px}
+.form label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:4px}
+details{margin-top:16px;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+summary{cursor:pointer;font-weight:600}
+details .f{margin:10px 0}
+/* panel: the only raised surface */
+.panel{position:fixed;inset:0 0 0 auto;width:520px;max-width:100%;background:#fff;border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(20,32,26,.14);transform:translateX(104%);transition:transform .24s cubic-bezier(.16,1,.3,1);z-index:20;display:flex;flex-direction:column;visibility:hidden}
+.panel.open{transform:none;visibility:visible}
+.ph{padding:18px 20px 14px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.ph h2{margin:6px 0 0;font-size:20px;line-height:24px;font-weight:700;letter-spacing:-.01em}
+.ph .sub{color:var(--ink2);margin-top:2px}
+.ph .ibtn{margin:-6px -8px 0 auto}
+.pb{overflow:auto;flex:1;padding:0 20px 28px}
+.sec{padding:18px 0;border-bottom:1px solid var(--line2)}.sec:last-child{border-bottom:0}
+.sec h3{margin:0 0 12px;font-size:16px;line-height:20px;font-weight:700}
+dl{margin:0;display:grid;grid-template-columns:130px 1fr;gap:8px 12px}dt{color:var(--ink3);font-size:14px}dd{margin:0}
+.trip{list-style:none;margin:0;padding:0;position:relative}
+.trip:before{content:"";position:absolute;left:8px;top:12px;bottom:12px;width:4px;background:repeating-linear-gradient(to bottom,var(--amber) 0 10px,transparent 10px 18px)}
+.trip li{position:relative;padding-left:40px}
+.trip .end{padding-top:2px;padding-bottom:2px}
+.trip .end:before,.trip .stop:before{content:"";position:absolute;left:1px;top:6px;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--ink)}
+.trip .stop:before{background:var(--amber);top:16px}
+.trip .leg{padding:12px 0 12px 40px;color:var(--ink2);font-size:14px}
+.sign{background:var(--sign);color:#fff;border-radius:6px;outline:2px solid #fff;outline-offset:-5px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin:4px 0}
+.sign .n{background:#fff;color:var(--sign);font-weight:700;width:28px;height:28px;border-radius:4px;display:grid;place-items:center}
+.sign .nm{font-weight:700;line-height:20px}.sign .ct{font-size:13px;color:#D6EBDD}
+.sign .q{text-align:right;line-height:20px}.sign .q b{font-size:17px}
+.share{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.link{display:flex;gap:8px}.link .f{font-size:13px}
+.fine{font-size:13px;line-height:18px;color:var(--ink3);margin:8px 0 0}
+@media(max-width:860px){.form{grid-template-columns:1fr 1fr}input.f.search{width:100%}.hide-s{display:none}main{padding:16px}header{gap:12px;padding:0 12px}}
+@media(max-width:560px){.hide-xs{display:none}.only-xs{display:block}header{flex-wrap:wrap;padding:8px 12px 0}nav{order:3;width:100%}.brand{align-self:center}.hbtn{margin-left:auto;min-height:36px}}
+@media(pointer:coarse){.btn{min-height:44px}.btn.sm{min-height:40px}}
+@media(prefers-reduced-motion:reduce){.panel{transition:none}.btn{transition:none}}
+</style></head>
+<body>
+<header>
+ <span class="brand">LogTru</span>
+ <nav aria-label="Views"><a href="#loads" id="t-loads">Loads</a><a href="#dispatch" id="t-dispatch">Dispatch</a><a href="#trucks" id="t-trucks">Trucks</a></nav>
+ <span class="sp"></span>
+ <button class="hbtn" id="sync" onclick="syncAT()">Sync from Airtable</button>
+</header>
+<main id="main"></main>
+<aside class="panel" id="panel" aria-label="Load details" role="dialog" aria-modal="false"></aside>
 <script>
-const $=id=>document.getElementById(id);let LOADS=[],CUR=null;
+const $=id=>document.getElementById(id);
+let LOADS=[],TRUCKS=[],STATUS={},CUR=null,LASTRUN=null,Q='',FILT='open',BUSY='';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const usd=(n,d=0)=>n==null?'':'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
-async function status(){try{const s=await (await fetch('/api/status')).json();$('s-loads').textContent=s.loads;$('s-st').textContent=s.stations.toLocaleString();
- $('s-new').textContent=s.newest||'none';if(s.newest){const d=Math.round((Date.now()-new Date(s.newest+'T12:00:00'))/864e5);$('s-age').textContent=d<=0?'today':d+' day'+(d>1?'s':'')+' old'}}catch(e){}}
-async function load(){LOADS=await (await fetch('/api/loads')).json();render()}
-function render(){const q=$('q').value.toLowerCase().trim();const rs=LOADS.filter(l=>!q||(l.load+' '+l.origin+' '+l.destination).toLowerCase().includes(q));
- $('rows').innerHTML=rs.length?rs.map(l=>`<tr id="r-${esc(l.load)}" class="${CUR===l.load?'sel':''}"><td class="num">${esc(l.load)}</td><td>${esc(l.origin)}<span class="arrow">&rarr;</span>${esc(l.destination)}</td><td class="mut">${esc(l.pickup||'')}</td><td class="r num">${usd(l.rate)}</td><td class="r"><button class="btn sm" onclick="plan('${esc(l.load)}',false)">Plan</button></td></tr>`).join(''):`<tr><td colspan="5"><div class="empty"><b>No loads yet</b>Press Sync from Airtable to load them.</div></td></tr>`}
-function closeP(){$('panel').classList.remove('open');CUR=null;render()}
-async function plan(id,send){CUR=id;render();const l=LOADS.find(x=>x.load===id)||{};
- $('p-eb').textContent='Load '+id;$('p-t').textContent='Fuel plan';$('p-r').textContent=(l.origin||'')+' to '+(l.destination||'');
- $('p-b').innerHTML='<div class="skel"></div><div class="skel" style="width:70%"></div><div class="skel" style="width:85%"></div><p class="note">Routing for a truck, then finding the cheapest stops. This takes a few seconds.</p>';$('panel').classList.add('open');
- let j={},ok=false;try{const r=await fetch('/api/plan/'+encodeURIComponent(id)+'?send='+send,{method:'POST'});ok=r.ok;j=await r.json().catch(()=>({detail:'Error '+r.status}))}catch(e){j={detail:String(e)}}
- if(!ok){$('p-b').innerHTML=`<div class="empty"><b>Could not plan this load</b>${esc(j.message||j.detail||'Unknown error')}</div>`;return}
- const p=j.plan,f=p.fuel;let h=`<div class="kv"><div><div class="l">Distance</div><div class="v num">${p.miles.toLocaleString()} mi</div></div><div><div class="l">Driving time</div><div class="v num">${p.hours} h</div></div>`;
- if(f){const pct=l.rate?Math.round(f.cost/l.rate*100):null;h+=`<div><div class="l">Fuel cost</div><div class="v num">${usd(f.cost)}</div></div><div><div class="l">Per mile${pct!=null?' / share of rate':''}</div><div class="v num">${usd(f.cost/p.miles,2)}${pct!=null?' / '+pct+'%':''}</div></div>`}
- h+='</div>';
- if(f){h+=`<h3>Fuel stops <span class="note">(${f.plan.length}, ${f.plan.reduce((a,s)=>a+s.gallons,0)} gal bought)</span></h3><div class="stops"><table><thead><tr><th>Mile</th><th>Station</th><th class="r">Gal</th><th class="r">Price</th></tr></thead><tbody>`+f.plan.map(s=>`<tr><td class="num">${s.mile}</td><td>${esc(s.station)}<div class="mut" style="font-size:12px">${esc((s.city||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))}, ${esc(s.st)}</div></td><td class="r num">${s.gallons}</td><td class="r num">${usd(s.price,3)}</td></tr>`).join('')+'</tbody></table></div>'}
- else h+=`<div class="empty"><b>No fuel plan found</b>Only ${p.stations_on_route} priced stations lie within 5 miles of this route, not enough to plan legal stops. Refresh United Fuel prices or widen coverage.</div>`;
- h+=`<p>${p.router&&p.router.startsWith('HERE')?'<span class="tag g">Truck routing</span>':'<span class="tag y">Car routing, no truck rules</span>'} <span class="tag">${p.stations_on_route} stations on route</span></p>`;
- h+=`<p class="note">Assumes 6.5 MPG, 200 gal tank, 30 gal reserve, starting with 110 gal and arriving with the same. Prices are United Fuel discounted prices. Stops are a suggestion; drivers follow posted restrictions.</p>`;
- h+=`<button class="btn" onclick="plan('${esc(id)}',true)">${send?'Sent to Telegram':'Send to Telegram'}</button>`;
- $('p-b').innerHTML=h}
-async function syncAT(){const b=$('sync');b.disabled=true;$('m').textContent='Syncing...';try{const r=await fetch('/api/sync/airtable',{method:'POST'});const j=await r.json();$('m').textContent=r.ok?`Synced ${j.loads} loads`:('Error: '+(j.detail||''));await load();status()}catch(e){$('m').textContent='Error: '+e}b.disabled=false}
-status();load();
+const usd=(n,d=0)=>n==null||n===''?'':'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const mi=n=>n==null?'':Math.round(n).toLocaleString('en-US')+' mi';
+const ARW='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-label="to"><path d="M2 8h11M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const PIN='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" stroke="currentColor" stroke-width="1.7"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.7"/></svg>';
+const X='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+function when(s){const m=/(\d\d)\/(\d\d)\/(\d{4}) (\d\d:\d\d) ([A-Z]{3})/.exec(s||'');if(!m)return{d:s||'',t:''};const dt=new Date(+m[3],+m[1]-1,+m[2]);return{d:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),t:m[4]+' '+m[5]}}
+const town=s=>String(s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+const plate=l=>`<span class="plate num">${esc(l)}</span>`;
+async function api(path,opt){const r=await fetch(path,opt);let j={};try{j=await r.json()}catch(e){}return{ok:r.ok,status:r.status,j}}
+async function refresh(){const[a,b,c]=await Promise.all([api('/api/loads'),api('/api/trucks'),api('/api/status')]);LOADS=a.ok?a.j:[];TRUCKS=b.ok?b.j:[];STATUS=c.ok?c.j:{};draw()}
+function view(){return (location.hash||'#loads').slice(1)}
+function draw(){const v=['loads','dispatch','trucks'].includes(view())?view():'loads';for(const t of['loads','dispatch','trucks'])$('t-'+t).removeAttribute('aria-current');$('t-'+v).setAttribute('aria-current','page');
+ $('main').innerHTML=v==='loads'?loadsView():v==='dispatch'?dispatchView():trucksView();if(CUR&&v==='loads')markSel()}
+addEventListener('hashchange',()=>{closeP();draw()});
+
+/* ---------- Loads ---------- */
+const isOpen=l=>!['In Transit','Completed','Cancelled'].includes(l.status||'');
+function loadsView(){
+ const rs=LOADS.filter(l=>(FILT==='all'||isOpen(l))&&(!Q||[l.load,l.broker,l.broker_load,l.origin,l.destination,l.truck].join(' ').toLowerCase().includes(Q.toLowerCase())));
+ const unplanned=LOADS.filter(l=>isOpen(l)&&!l.plan).length;
+ const age=STATUS.newest?Math.round((Date.now()-new Date(STATUS.newest+'T12:00:00'))/864e5):null;
+ return `<div class="top"><h1>Loads</h1><p>${LOADS.length} loads from QuickManage. Fuel prices from ${(STATUS.stations||0).toLocaleString()} stations${STATUS.newest?', newest '+(age<=0?'today':age+' day'+(age>1?'s':'')+' old'):''}.</p></div>
+ <div class="tools"><input class="f search" id="q" placeholder="Search load, client, city or truck" value="${esc(Q)}" aria-label="Search loads" oninput="Q=this.value;keepFocus(()=>draw())">
+ <select class="f" style="width:auto" aria-label="Show" onchange="FILT=this.value;draw()"><option value="open" ${FILT==='open'?'selected':''}>Not yet picked up</option><option value="all" ${FILT==='all'?'selected':''}>All loads</option></select>
+ <span class="sp"></span><button class="btn main" id="planall" onclick="planAll()" ${BUSY||!unplanned?'disabled':''}>${BUSY||(unplanned?`Plan fuel for ${unplanned} load${unplanned===1?'':'s'}`:'All loads planned')}</button></div>
+ <div class="wrap"><table><thead><tr><th>Load</th><th class="hide-xs">Client</th><th>Route</th><th class="hide-xs">Pickup</th><th class="r hide-s">Miles</th><th class="r hide-s">Rate</th><th class="hide-xs">Truck</th><th>Fuel plan</th><th></th></tr></thead><tbody>
+ ${!LOADS.length&&!STATUS.loads&&STATUS.loads!==0?'<tr><td colspan="9"><div class="skel"></div><div class="skel"></div><div class="skel"></div></td></tr>':rs.length?rs.map(loadRow).join(''):`<tr><td colspan="9"><div class="empty"><b>${LOADS.length?'No loads match':'No loads yet'}</b>${LOADS.length?'Clear the search or change the filter.':'Press Sync from Airtable to bring in the loads.'}</div></td></tr>`}
+ </tbody></table></div>`}
+function keepFocus(fn){const s=document.activeElement&&document.activeElement.id==='q'?document.activeElement.selectionStart:null;fn();if(s!==null){const e=$('q');e.focus();e.setSelectionRange(s,s)}}
+function loadRow(l){const w=when(l.pickup),p=l.plan,f=p&&p.fuel,tr=TRUCKS.find(t=>t.unit===l.truck);
+ const fuel=p?(f?`<span class="fuel"><b class="num">${usd(f.cost)}</b><br><span class="mut">${f.plan.length} stop${f.plan.length===1?'':'s'}</span></span>`:`<span class="tag warn">No plan</span>`):`<button class="btn sm" onclick="event.stopPropagation();doPlan('${esc(l.load)}')" ${BUSY?'disabled':''}>Plan fuel</button>`;
+ return `<tr class="row" id="r-${esc(l.load)}" tabindex="0" onclick="openP('${esc(l.load)}')" onkeydown="if(event.key==='Enter')openP('${esc(l.load)}')">
+ <td>${plate(l.load)}<div class="mut only-xs" style="margin-top:4px">${esc(l.broker||'')}</div></td><td class="hide-xs"><div class="cl">${esc(l.broker||'')}</div><div class="mut">${l.broker_load?'Broker load '+esc(l.broker_load):''}</div></td>
+ <td><div class="rt"><span>${esc(l.origin)}</span>${ARW}<span>${esc(l.destination)}</span></div></td>
+ <td class="hide-xs"><div class="num">${esc(w.d)}</div><div class="mut num">${esc(w.t)}</div></td>
+ <td class="r num hide-s">${mi(l.loaded_mi)}<div class="mut">${l.deadhead_mi!=null?mi(l.deadhead_mi)+' empty':''}</div></td>
+ <td class="r num hide-s">${usd(l.rate)}<div class="mut">${l.rate&&l.loaded_mi?usd(l.rate/l.loaded_mi,2)+'/mi':''}</div></td>
+ <td class="hide-xs">${l.truck?`<span class="cl num">${esc(l.truck)}</span><div class="mut">${esc(tr?.driver||'')}</div>`:'<span class="mut">Not assigned</span>'}</td>
+ <td>${fuel}</td>
+ <td class="r">${p&&p.nav?`<a class="ibtn" href="${esc(p.nav)}" target="_blank" rel="noopener" title="Open route in Google Maps" aria-label="Open route in Google Maps" onclick="event.stopPropagation()">${PIN}</a>`:''}</td></tr>`}
+function markSel(){document.querySelectorAll('tr.sel').forEach(e=>e.classList.remove('sel'));const r=$('r-'+CUR);if(r)r.classList.add('sel')}
+
+async function doPlan(id,send=false){const r=await api('/api/plan/'+encodeURIComponent(id)+'?send='+send,{method:'POST'});
+ const i=LOADS.findIndex(x=>x.load===id);if(r.ok&&i>=0){LOADS[i].plan=r.j.plan;LOADS[i].plan_at=new Date().toISOString()}return r}
+async function planAll(){const todo=LOADS.filter(l=>isOpen(l)&&!l.plan);let n=0;for(const l of todo){n++;BUSY=`Planning ${n} of ${todo.length}`;draw();await doPlan(l.load)}BUSY='';draw()}
+
+/* ---------- side panel ---------- */
+function openP(id){CUR=id;markSel();paintP();const p=$('panel');p.classList.add('open');p.querySelector('.ibtn').focus()}
+function closeP(){const was=CUR;CUR=null;$('panel').classList.remove('open');markSel();if(was){const r=$('r-'+was);if(r)r.focus({preventScroll:true})}}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&CUR)closeP()});
+function driverMsg(l,p){const f=p.fuel;const L=[`Load ${l.load}${l.broker?' for '+l.broker:''}`,`${l.origin} to ${l.destination}, ${Math.round(p.miles)} mi`];
+ const w=when(l.pickup);if(w.t)L.push(`Pickup ${w.d} ${w.t}`);if(f){L.push('Fuel stops:');f.plan.forEach((s,i)=>L.push(`${i+1}. ${s.station}, ${town(s.city)} ${s.st}: buy ${s.gallons} gal at ${usd(s.price,3)}`))}L.push('Route: '+p.nav);return L.join('\n')}
+function paintP(){const l=LOADS.find(x=>x.load===CUR);if(!l)return;const p=l.plan,f=p&&p.fuel,tr=TRUCKS.find(t=>t.unit===l.truck),pu=when(l.pickup),dl=when(l.delivery);
+ let body=`<div class="sec"><h3>Order</h3><dl><dt>Client</dt><dd class="cl">${esc(l.broker||'Not set')}</dd><dt>Broker load</dt><dd class="num">${esc(l.broker_load||'')}</dd>
+ <dt>Pickup</dt><dd>${esc(l.origin_facility||'')}<div class="mut">${esc(l.origin)}, ${esc(pu.d)} ${esc(pu.t)}</div></dd>
+ <dt>Delivery</dt><dd>${esc(l.dest_facility||'')}<div class="mut">${esc(l.destination)}, ${esc(dl.d)} ${esc(dl.t)}</div></dd>
+ <dt>Distance</dt><dd class="num">${mi(l.loaded_mi)} loaded${l.deadhead_mi!=null?', '+mi(l.deadhead_mi)+' empty':''}</dd>
+ <dt>Weight</dt><dd class="num">${l.weight_lbs?Math.round(l.weight_lbs).toLocaleString()+' lbs':''}</dd>
+ <dt>Rate</dt><dd class="num">${usd(l.rate)}${l.rate&&l.loaded_mi?' ('+usd(l.rate/l.loaded_mi,2)+'/mi)':''}</dd>
+ <dt>Truck</dt><dd>${l.truck?`<span class="cl num">${esc(l.truck)}</span> ${esc(tr?.driver||'')}`:'<span class="mut">Not assigned. Use the Dispatch tab.</span>'}</dd></dl></div>`;
+ if(!p){body+=`<div class="sec"><h3>Fuel plan</h3><p class="mut" style="font-size:15px">No fuel plan yet for this load.</p><button class="btn main" onclick="panelPlan(this)">Plan fuel</button></div>`}
+ else{let h='';const stops=f?f.plan:[];
+  h+=`<div class="sec"><h3>Fuel plan</h3>`;
+  if(f){const pct=l.rate?Math.round(f.cost/l.rate*100):null;
+   h+=`<p style="margin:0 0 14px"><b class="num" style="font-size:22px">${usd(f.cost)}</b> for <span class="num">${f.gallons}</span> gal, <span class="num">${usd(f.cost/p.miles,2)}</span> per mile${pct!=null?`, <span class="num">${pct}%</span> of the rate`:''}.</p>`;
+   let prev=0;h+=`<ol class="trip"><li class="end"><b>${esc(l.origin)}</b><div class="mut">Start with ${110} gal</div></li>`;
+   stops.forEach((s,i)=>{h+=`<li class="leg num">${s.mile-prev} mi</li><li class="stop"><div class="sign"><span class="n num">${i+1}</span><div><div class="nm">${esc(s.station)}</div><div class="ct">${esc(town(s.city))}, ${esc(s.st)}, mile ${s.mile}</div></div><div class="q num"><b>${s.gallons} gal</b><br>${usd(s.price,3)}</div></div></li>`;prev=s.mile});
+   h+=`<li class="leg num">${Math.round(p.miles-prev)} mi</li><li class="end"><b>${esc(l.destination)}</b><div class="mut">${Math.round(p.hours*10)/10} h of driving in total</div></li></ol>`}
+  else h+=`<div class="callout">No fuel plan: only ${p.stations_on_route} priced stations are within 5 miles of this route. Refresh the United Fuel prices, then plan again.</div>`;
+  h+=`<p class="fine">${p.router&&p.router.startsWith('HERE')?'Routed for a truck (height, weight, length, axles).':'Routed as a car. Truck restrictions were not applied.'} Assumes 6.5 MPG, a 200 gal tank, a 30 gal reserve, and arriving with the 110 gal it started with. Prices are United Fuel discounted prices.</p>
+  <button class="btn sm quiet" onclick="panelPlan(this)" style="margin-top:6px">Plan again</button></div>`;
+  h+=`<div class="sec"><h3>Share with the driver</h3><div class="share"><a class="btn main" href="${esc(p.nav)}" target="_blank" rel="noopener">Open in Google Maps</a>
+   <button class="btn" onclick="copyTxt(this,'link')">Copy link</button><button class="btn" onclick="copyTxt(this,'msg')">Copy message</button><button class="btn" onclick="tg(this)">Send to Telegram</button></div>
+   <div class="link"><input class="f" readonly value="${esc(p.nav)}" aria-label="Route link" onfocus="this.select()"></div>
+   <p class="fine">The link opens the route in the Maps app on a phone, with the fuel stops in order. Google Maps draws the road between stops for a car, so drivers of 53-foot trailers should check restrictions in a truck GPS app.</p></div>`;
+  body+=h}
+ $('panel').innerHTML=`<div class="ph"><div>${plate(l.load)}<h2>${esc(l.broker||'Load '+l.load)}</h2><div class="sub">${esc(l.origin)} to ${esc(l.destination)}</div></div><button class="ibtn" onclick="closeP()" aria-label="Close">${X}</button></div><div class="pb">${body}</div>`}
+async function panelPlan(b){b.disabled=true;b.textContent='Planning...';const r=await doPlan(CUR);if(!r.ok){b.disabled=false;b.textContent='Plan fuel';alert2(r.j.message||r.j.detail||'Could not plan this load')}draw();paintP()}
+function alert2(t){const p=document.querySelector('.pb');if(!p)return;const d=document.createElement('div');d.className='callout';d.setAttribute('role','alert');d.textContent=t;p.prepend(d)}
+function copyTxt(b,kind){const l=LOADS.find(x=>x.load===CUR),p=l.plan;const t=kind==='link'?p.nav:driverMsg(l,p);const done=()=>{const o=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=o,1600)};
+ if(navigator.clipboard&&isSecureContext)navigator.clipboard.writeText(t).then(done,fb);else fb();
+ function fb(){const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');done()}catch(e){}a.remove()}}
+async function tg(b){b.disabled=true;const o=b.textContent;b.textContent='Sending...';const r=await doPlan(CUR,true);b.disabled=false;const ok=r.ok&&r.j.telegram&&r.j.telegram.ok;b.textContent=ok?'Sent':o;if(!ok)alert2(r.ok?'Telegram is not set up yet. Add the bot token and chat id to the server settings.':(r.j.detail||'Could not send'))}
+
+/* ---------- Dispatch ---------- */
+function dispatchView(){
+ const open=LOADS.filter(isOpen),withT=open.filter(l=>l.truck).length,noLoc=TRUCKS.filter(t=>t.lat==null).length;
+ const left=LASTRUN&&LASTRUN.unassigned&&LASTRUN.unassigned.length?LASTRUN.unassigned:[];
+ return `<div class="top"><h1>Dispatch</h1><p>${withT} of ${open.length} open loads have a truck.${TRUCKS.length?'':' Add trucks first.'}</p></div>
+ <div class="tools"><button class="btn main" onclick="runAssign(this)" ${TRUCKS.length?'':'disabled'}>Auto-assign trucks</button><button class="btn quiet danger" onclick="clearAssign()">Clear assignments</button></div>
+ ${noLoc?`<div class="callout">${noLoc} truck${noLoc>1?'s have':' has'} no location, so auto-assign skips ${noLoc>1?'them':'it'}. <a href="#trucks" style="color:inherit;font-weight:600">Set locations in Trucks</a>.</div>`:''}
+ ${LASTRUN&&!left.length&&LASTRUN.assigned!=null?`<div class="callout ok" role="status">Assigned ${LASTRUN.assigned} load${LASTRUN.assigned===1?'':'s'}.</div>`:''}
+ ${left.length?`<div class="callout" role="status">Assigned ${LASTRUN.assigned}. ${left.length} left without a truck:<ul>${left.map(u=>`<li><b>${esc(u.load)}</b>: ${esc(u.reason)}</li>`).join('')}</ul></div>`:''}
+ <div class="wrap"><table><thead><tr><th>Load</th><th>Pickup</th><th>Route</th><th>Truck</th><th class="r hide-s">Empty miles</th><th>Arrives</th></tr></thead><tbody>
+ ${open.length?open.sort((a,b)=>String(a.load).localeCompare(b.load)).map(dispRow).join(''):`<tr><td colspan="6"><div class="empty"><b>No open loads</b>Sync from Airtable to bring in loads.</div></td></tr>`}</tbody></table></div>
+ <p class="fine">Rule: loads in pickup order go to the truck that reaches the pickup in time with the fewest empty miles. After a load, the truck is treated as free at the drop-off city. Distances are estimates (straight line plus 25%, 50 mph, no hours-of-service limits).</p>`}
+function dispRow(l){const w=when(l.pickup),a=l.assign_info||{};let arr='<span class="mut">-</span>';
+ if(l.truck&&a.slack_h!=null){const c=a.slack_h<0?'bad':a.slack_h<2?'warn':'ok';arr=`<span class="tag ${c}">${a.slack_h<0?'Late by '+Math.abs(a.slack_h)+' h':a.slack_h<2?'Tight, '+a.slack_h+' h spare':'On time, '+a.slack_h+' h spare'}</span>`}
+ else if(l.truck&&a.manual)arr='<span class="tag">Set by hand</span>';
+ return `<tr><td>${plate(l.load)}</td><td><div class="num">${esc(w.d)}</div><div class="mut num">${esc(w.t)}</div></td><td><div class="rt"><span>${esc(l.origin)}</span>${ARW}<span>${esc(l.destination)}</span></div></td>
+ <td><select class="f" style="min-width:210px" aria-label="Truck for load ${esc(l.load)}" onchange="setTruck('${esc(l.load)}',this.value)"><option value="">Not assigned</option>${TRUCKS.map(t=>`<option value="${esc(t.unit)}" ${t.unit===l.truck?'selected':''}>${esc(t.unit)}${t.driver?', '+esc(t.driver):''}</option>`).join('')}</select></td>
+ <td class="r num hide-s">${a.deadhead_mi!=null?mi(a.deadhead_mi):'<span class="mut">-</span>'}</td><td>${arr}</td></tr>`}
+async function runAssign(b){b.disabled=true;b.textContent='Assigning...';const r=await api('/api/assign/run',{method:'POST'});LASTRUN=r.ok?r.j:{assigned:0,unassigned:[{load:'-',reason:r.j.detail||'Assignment failed'}]};await refresh()}
+async function clearAssign(){await api('/api/assign/clear',{method:'POST'});LASTRUN=null;await refresh()}
+async function setTruck(id,u){await api('/api/loads/'+encodeURIComponent(id)+'/truck',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unit:u})});await refresh()}
+
+/* ---------- Trucks ---------- */
+function trucksView(){return `<div class="top"><h1>Trucks</h1><p>${TRUCKS.length} trucks. Location is where each truck is free next; Samsara will fill it in automatically later.</p></div>
+ <form class="form" onsubmit="saveTruck(event)"><div><label for="f-unit">Truck number</label><input class="f" id="f-unit" required></div><div><label for="f-driver">Driver</label><input class="f" id="f-driver"></div>
+ <div><label for="f-city">City</label><input class="f" id="f-city" placeholder="Houston"></div><div><label for="f-st">State</label><input class="f" id="f-st" maxlength="2" placeholder="TX" style="text-transform:uppercase"></div><button class="btn main" id="f-go">Save truck</button></form>
+ <div id="f-msg" class="mut" role="status" style="margin:-4px 0 12px"></div>
+ <div class="wrap"><table><thead><tr><th>Truck</th><th>Driver</th><th>Location</th><th class="r">Loads</th><th></th></tr></thead><tbody>
+ ${TRUCKS.length?TRUCKS.map(t=>`<tr><td class="cl num">${esc(t.unit)}</td><td>${esc(t.driver||'')}</td><td>${t.lat!=null?esc(t.city+', '+t.st):`<span class="tag warn">No location</span>`}</td><td class="r num">${t.loads}</td>
+ <td class="r"><button class="btn sm quiet" onclick="editTruck('${esc(t.unit)}')">Edit</button><button class="btn sm quiet danger" onclick="delTruck('${esc(t.unit)}')">Remove</button></td></tr>`).join(''):`<tr><td colspan="5"><div class="empty"><b>No trucks yet</b>Add a truck above, or import a list below.</div></td></tr>`}</tbody></table></div>
+ <details><summary>Import a list</summary><p class="mut" style="margin:8px 0 0">One truck per line: truck number, driver, city, state. City and state are optional.</p>
+ <textarea class="f" id="paste" aria-label="Truck list" placeholder="2001, Maria Lopez, Houston, TX"></textarea><button class="btn" onclick="importList(this)">Import trucks</button></details>`}
+async function saveTruck(e){e.preventDefault();const b=$('f-go');b.disabled=true;const r=await api('/api/trucks/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify([{unit:$('f-unit').value,driver:$('f-driver').value,city:$('f-city').value,st:$('f-st').value}])});
+ await refresh();const m=$('f-msg');if(m)m.textContent=r.ok?(r.j.located?'Saved. Location found.':($('f-city')&&'Saved.')):'Could not save: '+(r.j.detail||r.status)}
+function editTruck(u){const t=TRUCKS.find(x=>x.unit===u);$('f-unit').value=t.unit;$('f-driver').value=t.driver||'';$('f-city').value=t.city||'';$('f-st').value=t.st||'';$('f-city').focus()}
+async function delTruck(u){if(!confirm('Remove truck '+u+'? Its loads become unassigned.'))return;await api('/api/trucks/'+encodeURIComponent(u),{method:'DELETE'});await refresh()}
+async function importList(b){const rows=$('paste').value.split('\n').map(s=>s.split(',').map(x=>x.trim())).filter(a=>a[0]).map(a=>({unit:a[0],driver:a[1]||'',city:a[2]||'',st:a[3]||''}));if(!rows.length)return;b.disabled=true;await api('/api/trucks/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rows)});await refresh()}
+
+async function syncAT(){const b=$('sync');b.disabled=true;b.textContent='Syncing...';const r=await api('/api/sync/airtable',{method:'POST'});b.disabled=false;b.textContent=r.ok?`Synced ${r.j.loads} loads`:'Sync failed';setTimeout(()=>b.textContent='Sync from Airtable',2500);await refresh()}
+refresh();
 </script></body></html>

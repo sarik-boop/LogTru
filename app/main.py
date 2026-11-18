@@ -2,7 +2,7 @@ import os, csv, io, json, datetime as dt, httpx
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, HTTPException, Body
 from fastapi.responses import HTMLResponse
-import db, planner, telegram, airtable
+import db, planner, telegram, airtable, dispatch
 
 app = FastAPI(title="LogTru demo")
 
@@ -69,7 +69,60 @@ def sync_airtable():
 
 @app.get("/api/loads")
 def loads():
-    with db.conn() as c: return c.execute("SELECT * FROM loads ORDER BY load DESC").fetchall()
+    with db.conn() as c:
+        return c.execute("""SELECT l.*, p.result AS plan, p.created AS plan_at FROM loads l
+                            LEFT JOIN LATERAL (SELECT result, created FROM plans WHERE load = l.load ORDER BY created DESC LIMIT 1) p ON true
+                            ORDER BY l.load DESC""").fetchall()
+
+@app.get("/api/trucks")
+def trucks():
+    with db.conn() as c:
+        return c.execute("""SELECT t.*, (SELECT count(*) FROM loads l WHERE l.truck = t.unit) AS loads
+                            FROM trucks t ORDER BY t.unit""").fetchall()
+
+@app.post("/api/trucks/import")
+def import_trucks(rows: list[dict] = Body(...)):
+    """[{unit, driver, city?, st?}]. Location is only changed when city and st are given."""
+    n = placed = 0
+    with db.conn() as c:
+        for r in rows:
+            unit = str(r.get("unit", "")).strip()
+            if not unit: continue
+            c.execute("""INSERT INTO trucks(unit, driver) VALUES (%s,%s)
+                         ON CONFLICT (unit) DO UPDATE SET driver = coalesce(nullif(EXCLUDED.driver,''), trucks.driver)""",
+                      (unit, (r.get("driver") or "").strip())); n += 1
+            city, st = (r.get("city") or "").strip(), (r.get("st") or "").strip().upper()
+            if city and st:
+                g = dispatch.geocode(c, f"{city}, {st}")
+                if g:
+                    c.execute("UPDATE trucks SET city=%s, st=%s, lat=%s, lng=%s WHERE unit=%s", (city, st, g[0], g[1], unit)); placed += 1
+                else:
+                    c.execute("UPDATE trucks SET city=%s, st=%s WHERE unit=%s", (city, st, unit))
+    return {"trucks": n, "located": placed}
+
+@app.delete("/api/trucks/{unit}")
+def delete_truck(unit: str):
+    with db.conn() as c:
+        c.execute("UPDATE loads SET truck=NULL, assign_info=NULL WHERE truck=%s", (unit,))
+        c.execute("DELETE FROM trucks WHERE unit=%s", (unit,))
+    return {"ok": True}
+
+@app.post("/api/assign/run")
+def assign_run():
+    with db.conn() as c: return dispatch.run(c)
+
+@app.post("/api/assign/clear")
+def assign_clear():
+    with db.conn() as c: c.execute("UPDATE loads SET truck=NULL, assign_info=NULL")
+    return {"ok": True}
+
+@app.post("/api/loads/{load}/truck")
+def set_truck(load: str, body: dict = Body(...)):
+    unit = (body.get("unit") or "").strip() or None
+    with db.conn() as c:
+        if unit and not c.execute("SELECT 1 FROM trucks WHERE unit=%s", (unit,)).fetchone(): raise HTTPException(404, "truck not found")
+        c.execute("UPDATE loads SET truck=%s, assign_info=%s WHERE load=%s", (unit, json.dumps({"manual": True}) if unit else None, load))
+    return {"ok": True}
 
 def _stations():
     with db.conn() as c:
