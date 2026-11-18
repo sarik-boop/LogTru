@@ -1,0 +1,7 @@
+# Demo: plain HTTP on the server IP. When you have a domain, replace ":80" with the domain name and Caddy adds HTTPS automatically.
+:80 {
+	basicauth {
+		{$DASH_USER} {$DASH_PASS_HASH}
+	}
+	reverse_proxy app:8000
+}

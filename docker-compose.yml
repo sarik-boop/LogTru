@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: logtru
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: logtru
+    volumes: [pgdata:/var/lib/postgresql/data]
+  app:
+    build: ./app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://logtru:${DB_PASSWORD}@db:5432/logtru
+    depends_on: [db]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    depends_on: [app]
+volumes:
+  pgdata:
+  caddy_data:
