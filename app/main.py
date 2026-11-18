@@ -1,7 +1,7 @@
 import os, csv, io, json, datetime as dt
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse
-import db, planner, telegram
+import db, planner, telegram, airtable
 
 app = FastAPI(title="LogTru demo")
 
@@ -28,6 +28,11 @@ async def import_fills(file: UploadFile):
             c.execute("INSERT INTO stations VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING", (p[0], p[1], p[2], p[3], float(p[4]), float(p[5])))
             c.execute("INSERT INTO prices VALUES (%s,%s,%s) ON CONFLICT DO NOTHING", (p[0], p[6], float(p[7]))); n += 1
     return {"imported": n}
+
+@app.post("/api/sync/airtable")
+def sync_airtable():
+    try: return airtable.sync()
+    except Exception as e: raise HTTPException(400, str(e))
 
 @app.get("/api/loads")
 def loads():
@@ -57,9 +62,10 @@ def make_plan(load: str, send: bool = False):
 def home():
     return """<!doctype html><meta charset=utf-8><title>LogTru</title>
 <style>body{font:15px system-ui;margin:2rem auto;max-width:900px;padding:0 1rem}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:6px;text-align:left}button{padding:4px 10px}pre{background:#f5f5f5;padding:10px;white-space:pre-wrap}</style>
-<h1>LogTru: load to fuel plan</h1><table id=t><tr><th>Load<th>Route<th>Truck<th></table><pre id=o>Pick a load and press Plan.</pre>
+<h1>LogTru: load to fuel plan</h1><p><button onclick="sync()">Sync from Airtable</button> <span id=m></span></p><table id=t><tr><th>Load<th>Route<th>Truck<th></table><pre id=o>Pick a load and press Plan.</pre>
 <script>
 async function go(){const r=await (await fetch('/api/loads')).json();const t=document.getElementById('t');
 for(const l of r){const tr=t.insertRow();tr.innerHTML=`<td>${l.load}<td>${l.origin} to ${l.destination}<td>${l.unit||''}<td><button onclick="plan('${l.load}',false)">Plan</button> <button onclick="plan('${l.load}',true)">Plan + Telegram</button>`}}
 async function plan(id,send){o.textContent='Planning...';const r=await fetch('/api/plan/'+id+'?send='+send,{method:'POST'});const j=await r.json();o.textContent=j.message||JSON.stringify(j)}
+async function sync(){m.textContent='Syncing...';const r=await fetch('/api/sync/airtable',{method:'POST'});const j=await r.json();m.textContent=r.ok?('Loaded '+j.loads+' loads, '+j.stations+' stations. Reload the page.'):('Error: '+(j.detail||''))}
 go()</script>"""

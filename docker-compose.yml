@@ -14,6 +14,10 @@ services:
     environment:
       DATABASE_URL: postgresql://logtru:${DB_PASSWORD}@db:5432/logtru
     depends_on: [db]
+  robot:
+    build: ./robot
+    env_file: .env
+    profiles: ["robot"]          # not started by default: docker compose run --rm robot
   caddy:
     image: caddy:2
     restart: unless-stopped
