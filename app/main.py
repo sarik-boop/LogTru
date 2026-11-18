@@ -49,8 +49,8 @@ def import_uf(rows: list[dict] = Body(...)):
                 except Exception:
                     skipped += 1; continue
                 geo += 1
-                c.execute("""INSERT INTO stations VALUES (%s,%s,%s,%s,%s,%s)
-                             ON CONFLICT (sid) DO UPDATE SET lat=EXCLUDED.lat, lng=EXCLUDED.lng""",
+                c.execute("""INSERT INTO stations(sid,name,city,st,lat,lng,source) VALUES (%s,%s,%s,%s,%s,%s,'uf')
+                             ON CONFLICT (sid) DO UPDATE SET lat=EXCLUDED.lat, lng=EXCLUDED.lng, source='uf'""",
                           (sid, r["name"], r["city"], r["st"], lat, lng))
             c.execute("""INSERT INTO prices VALUES (%s,%s,%s) ON CONFLICT (sid, seen) DO UPDATE SET price=EXCLUDED.price""", (sid, seen, price))
             n += 1
@@ -67,8 +67,7 @@ def loads():
 
 def _stations():
     with db.conn() as c:
-        return c.execute("""SELECT DISTINCT ON (s.sid) s.sid, s.name, s.city, s.st, s.lat, s.lng, p.price
-                            FROM stations s JOIN prices p USING (sid) ORDER BY s.sid, p.seen DESC""").fetchall()
+        return c.execute("SELECT sid, name, city, st, lat, lng, price FROM current_stations").fetchall()
 
 @app.post("/api/plan/{load}")
 def make_plan(load: str, send: bool = False):
