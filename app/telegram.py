@@ -14,7 +14,19 @@ def format_plan(load, origin, dest, p):
         lines.append("No fuel plan found (not enough station prices on the route).")
     else:
         lines.append(f"Planned fuel: ${f['cost']:,.0f} for {f['gallons']} gal")
-        for s in f["plan"]:
-            lines.append(f"- mile {s['mile']}: {s['station']} ({s['city'].title()}, {s['st']}) buy {s['gallons']} gal at ${s['price']:.3f}")
+        sc = p.get("schedule")
+        if sc:
+            lines.append(f"About {sc['total_h']} h door to door ({sc['drive_h']} h driving" + (f", {sc['sleeps']} overnight rest" if sc["sleeps"] else "") + ")")
+            for e in sc["events"]:
+                if e["kind"] == "fuel":
+                    lines.append(f"- after {e['at']} h, mile {e['mile']}: {e['station']} ({e['city'].title()}, {e['st']}) buy {e['gallons']} gal at ${e['price']:.3f}")
+                elif e["kind"] == "rest":
+                    near = f" near {e['near']['city'].title()}, {e['near']['st']}" if e.get("near") else ""
+                    lines.append(f"- after {e['at']} h, mile {e['mile']}: 10 h rest{near}")
+                else:
+                    lines.append(f"- after {e['at']} h: 30 min break")
+        else:
+            for s in f["plan"]:
+                lines.append(f"- mile {s['mile']}: {s['station']} ({s['city'].title()}, {s['st']}) buy {s['gallons']} gal at ${s['price']:.3f}")
     if p.get("nav"): lines.append("Navigate: " + p["nav"])
     return "\n".join(lines)

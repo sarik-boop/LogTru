@@ -51,6 +51,8 @@ td.r,th.r{text-align:right}
 .cl{font-weight:600}
 .rt{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
 .rt svg{flex:none;color:var(--ink3)}
+.trip .sign .mut{color:inherit;opacity:.85}.trip .rest .sign{background:var(--amberbg);color:var(--ink);box-shadow:inset 0 0 0 2px var(--amber)}.trip .rest .sign .ct{color:var(--ambertx)}
+.errline{max-width:240px;margin-top:4px;font-size:12px;line-height:16px}
 .tag{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0 8px;border-radius:4px;font-size:13px;font-weight:600;background:var(--head);color:var(--ink2)}
 .tag.ok{background:var(--okbg);color:var(--oktx)}.tag.warn{background:var(--amberbg);color:var(--ambertx)}.tag.bad{background:var(--redbg);color:var(--red)}
 .fuel b{font-size:16px}
@@ -107,7 +109,7 @@ dl{margin:0;display:grid;grid-template-columns:130px 1fr;gap:8px 12px}dt{color:v
 <aside class="panel" id="panel" aria-label="Load details" role="dialog" aria-modal="false"></aside>
 <script>
 const $=id=>document.getElementById(id);
-let LOADS=[],TRUCKS=[],STATUS={},CUR=null,LASTRUN=null,Q='',FILT='open',BUSY='';
+let LOADS=[],TRUCKS=[],STATUS={},CUR=null,LASTRUN=null,Q='',FILT='open',BUSY='',ERR={},PMSG='';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const usd=(n,d=0)=>n==null||n===''?'':'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const mi=n=>n==null?'':Math.round(n).toLocaleString('en-US')+' mi';
@@ -115,9 +117,12 @@ const ARW='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-labe
 const PIN='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" stroke="currentColor" stroke-width="1.7"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.7"/></svg>';
 const X='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 function when(s){const m=/(\d\d)\/(\d\d)\/(\d{4}) (\d\d:\d\d) ([A-Z]{3})/.exec(s||'');if(!m)return{d:s||'',t:''};const dt=new Date(+m[3],+m[1]-1,+m[2]);return{d:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),t:m[4]+' '+m[5]}}
+const fh=h=>{const m=Math.round(h*60),a=Math.floor(m/60),b=m%60;return a?(b?`${a} h ${b} min`:`${a} h`):`${b} min`};
+const pdt=s=>{const m=/(\d\d)\/(\d\d)\/(\d{4}) (\d\d):(\d\d)/.exec(s||'');return m?new Date(+m[3],+m[1]-1,+m[2],+m[4],+m[5]):null};
+const clk=d=>d.toLocaleDateString('en-US',{weekday:'short'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 const town=s=>String(s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
 const plate=l=>`<span class="plate num">${esc(l)}</span>`;
-async function api(path,opt){const r=await fetch(path,opt);let j={};try{j=await r.json()}catch(e){}return{ok:r.ok,status:r.status,j}}
+async function api(path,opt){let r;try{r=await fetch(path,opt)}catch(e){return{ok:false,status:0,j:{message:'Could not reach the server. Check your connection and try again.'}}}let j={};try{j=await r.json()}catch(e){}return{ok:r.ok,status:r.status,j}}
 async function refresh(){const[a,b,c]=await Promise.all([api('/api/loads'),api('/api/trucks'),api('/api/status')]);LOADS=a.ok?a.j:[];TRUCKS=b.ok?b.j:[];STATUS=c.ok?c.j:{};draw()}
 function view(){return (location.hash||'#loads').slice(1)}
 function draw(){const v=['loads','dispatch','trucks'].includes(view())?view():'loads';for(const t of['loads','dispatch','trucks'])$('t-'+t).removeAttribute('aria-current');$('t-'+v).setAttribute('aria-current','page');
@@ -134,12 +139,14 @@ function loadsView(){
  <div class="tools"><input class="f search" id="q" placeholder="Search load, client, city or truck" value="${esc(Q)}" aria-label="Search loads" oninput="Q=this.value;keepFocus(()=>draw())">
  <select class="f" style="width:auto" aria-label="Show" onchange="FILT=this.value;draw()"><option value="open" ${FILT==='open'?'selected':''}>Not yet picked up</option><option value="all" ${FILT==='all'?'selected':''}>All loads</option></select>
  <span class="sp"></span><button class="btn main" id="planall" onclick="planAll()" ${BUSY||!unplanned?'disabled':''}>${BUSY||(unplanned?`Plan fuel for ${unplanned} load${unplanned===1?'':'s'}`:'All loads planned')}</button></div>
+ ${PMSG?`<div class="callout" role="alert">${esc(PMSG)}</div>`:''}
  <div class="wrap"><table><thead><tr><th>Load</th><th class="hide-xs">Client</th><th>Route</th><th class="hide-xs">Pickup</th><th class="r hide-s">Miles</th><th class="r hide-s">Rate</th><th class="hide-xs">Truck</th><th>Fuel plan</th><th></th></tr></thead><tbody>
  ${!LOADS.length&&!STATUS.loads&&STATUS.loads!==0?'<tr><td colspan="9"><div class="skel"></div><div class="skel"></div><div class="skel"></div></td></tr>':rs.length?rs.map(loadRow).join(''):`<tr><td colspan="9"><div class="empty"><b>${LOADS.length?'No loads match':'No loads yet'}</b>${LOADS.length?'Clear the search or change the filter.':'Press Sync from Airtable to bring in the loads.'}</div></td></tr>`}
  </tbody></table></div>`}
 function keepFocus(fn){const s=document.activeElement&&document.activeElement.id==='q'?document.activeElement.selectionStart:null;fn();if(s!==null){const e=$('q');e.focus();e.setSelectionRange(s,s)}}
+function lateBy(l,sc){const a=pdt(l.pickup),d=pdt(l.delivery);if(!a||!d)return null;return new Date(a.getTime()+sc.total_h*36e5)>d}
 function loadRow(l){const w=when(l.pickup),p=l.plan,f=p&&p.fuel,tr=TRUCKS.find(t=>t.unit===l.truck);
- const fuel=p?(f?`<span class="fuel"><b class="num">${usd(f.cost)}</b><br><span class="mut">${f.plan.length} stop${f.plan.length===1?'':'s'}</span></span>`:`<span class="tag warn">No plan</span>`):`<button class="btn sm" onclick="event.stopPropagation();doPlan('${esc(l.load)}')" ${BUSY?'disabled':''}>Plan fuel</button>`;
+ const sc=p&&p.schedule,late=sc&&lateBy(l,sc),fuel=p?(f?`<span class="fuel"><b class="num">${usd(f.cost)}</b><br><span class="mut">${f.plan.length} stop${f.plan.length===1?'':'s'}${sc?', '+fh(sc.total_h)+(sc.sleeps?', '+sc.sleeps+' sleep'+(sc.sleeps>1?'s':''):''):''}</span>${late===true?'<br><span class="tag bad">Late</span>':''}</span>`:`<span class="tag warn">No plan</span>`):ERR[l.load]?`<span class="tag bad" title="${esc(ERR[l.load])}">Failed</span> <button class="btn sm" onclick="event.stopPropagation();planOne('${esc(l.load)}')" ${BUSY?'disabled':''}>Try again</button><div class="mut errline">${esc(ERR[l.load].slice(0,90))}</div>`:`<button class="btn sm" onclick="event.stopPropagation();planOne('${esc(l.load)}')" ${BUSY?'disabled':''}>Plan fuel</button>`;
  return `<tr class="row" id="r-${esc(l.load)}" tabindex="0" onclick="openP('${esc(l.load)}')" onkeydown="if(event.key==='Enter')openP('${esc(l.load)}')">
  <td>${plate(l.load)}<div class="mut only-xs" style="margin-top:4px">${esc(l.broker||'')}</div></td><td class="hide-xs"><div class="cl">${esc(l.broker||'')}</div><div class="mut">${l.broker_load?'Broker load '+esc(l.broker_load):''}</div></td>
  <td><div class="rt"><span>${esc(l.origin)}</span>${ARW}<span>${esc(l.destination)}</span></div></td>
@@ -152,15 +159,24 @@ function loadRow(l){const w=when(l.pickup),p=l.plan,f=p&&p.fuel,tr=TRUCKS.find(t
 function markSel(){document.querySelectorAll('tr.sel').forEach(e=>e.classList.remove('sel'));const r=$('r-'+CUR);if(r)r.classList.add('sel')}
 
 async function doPlan(id,send=false){const r=await api('/api/plan/'+encodeURIComponent(id)+'?send='+send,{method:'POST'});
- const i=LOADS.findIndex(x=>x.load===id);if(r.ok&&i>=0){LOADS[i].plan=r.j.plan;LOADS[i].plan_at=new Date().toISOString()}return r}
-async function planAll(){const todo=LOADS.filter(l=>isOpen(l)&&!l.plan);let n=0;for(const l of todo){n++;BUSY=`Planning ${n} of ${todo.length}`;draw();await doPlan(l.load)}BUSY='';draw()}
+ const i=LOADS.findIndex(x=>x.load===id);
+ if(r.ok&&i>=0){LOADS[i].plan=r.j.plan;LOADS[i].plan_at=new Date().toISOString();delete ERR[id]}
+ else if(!r.ok)ERR[id]=r.j.message||r.j.detail||('The server answered with error '+r.status);
+ return r}
+async function planAll(){const todo=LOADS.filter(l=>isOpen(l)&&!l.plan);PMSG='';let n=0,bad=0;
+ for(const l of todo){n++;BUSY=`Planning ${n} of ${todo.length}`;draw();const r=await doPlan(l.load);if(!r.ok)bad++}
+ BUSY='';const first=Object.values(ERR)[0];
+ PMSG=bad?`${bad} of ${todo.length} loads could not be planned. First error: ${first}`:'';draw()}
+async function planOne(id){BUSY='Planning load '+id;PMSG='';draw();const r=await doPlan(id);BUSY='';if(!r.ok)PMSG=`Load ${id}: ${ERR[id]}`;draw()}
 
 /* ---------- side panel ---------- */
 function openP(id){CUR=id;markSel();paintP();const p=$('panel');p.classList.add('open');p.querySelector('.ibtn').focus()}
 function closeP(){const was=CUR;CUR=null;$('panel').classList.remove('open');markSel();if(was){const r=$('r-'+was);if(r)r.focus({preventScroll:true})}}
 addEventListener('keydown',e=>{if(e.key==='Escape'&&CUR)closeP()});
 function driverMsg(l,p){const f=p.fuel;const L=[`Load ${l.load}${l.broker?' for '+l.broker:''}`,`${l.origin} to ${l.destination}, ${Math.round(p.miles)} mi`];
- const w=when(l.pickup);if(w.t)L.push(`Pickup ${w.d} ${w.t}`);if(f){L.push('Fuel stops:');f.plan.forEach((s,i)=>L.push(`${i+1}. ${s.station}, ${town(s.city)} ${s.st}: buy ${s.gallons} gal at ${usd(s.price,3)}`))}L.push('Route: '+p.nav);return L.join('\n')}
+ const w=when(l.pickup);if(w.t)L.push(`Pickup ${w.d} ${w.t}`);const sc=p.schedule;if(sc)L.push(`About ${fh(sc.total_h)} door to door (${fh(sc.drive_h)} driving${sc.sleeps?', '+sc.sleeps+' overnight rest'+(sc.sleeps>1?'s':''):''})`);
+ if(sc){L.push('Plan:');sc.events.forEach(e=>L.push(e.kind==='fuel'?`- After ${fh(e.at)}, mile ${e.mile}: fuel at ${e.station}, ${town(e.city)} ${e.st}, buy ${e.gallons} gal at ${usd(e.price,3)}`:e.kind==='rest'?`- After ${fh(e.at)}, mile ${e.mile}: 10 h rest${e.near?' near '+town(e.near.city)+' '+e.near.st:''}`:`- After ${fh(e.at)}: 30 min break`))}
+ else if(f){L.push('Fuel stops:');f.plan.forEach((s,i)=>L.push(`${i+1}. ${s.station}, ${town(s.city)} ${s.st}: buy ${s.gallons} gal at ${usd(s.price,3)}`))}L.push('Route: '+p.nav);return L.join('\n')}
 function paintP(){const l=LOADS.find(x=>x.load===CUR);if(!l)return;const p=l.plan,f=p&&p.fuel,tr=TRUCKS.find(t=>t.unit===l.truck),pu=when(l.pickup),dl=when(l.delivery);
  let body=`<div class="sec"><h3>Order</h3><dl><dt>Client</dt><dd class="cl">${esc(l.broker||'Not set')}</dd><dt>Broker load</dt><dd class="num">${esc(l.broker_load||'')}</dd>
  <dt>Pickup</dt><dd>${esc(l.origin_facility||'')}<div class="mut">${esc(l.origin)}, ${esc(pu.d)} ${esc(pu.t)}</div></dd>
@@ -174,19 +190,25 @@ function paintP(){const l=LOADS.find(x=>x.load===CUR);if(!l)return;const p=l.pla
   h+=`<div class="sec"><h3>Fuel plan</h3>`;
   if(f){const pct=l.rate?Math.round(f.cost/l.rate*100):null;
    h+=`<p style="margin:0 0 14px"><b class="num" style="font-size:22px">${usd(f.cost)}</b> for <span class="num">${f.gallons}</span> gal, <span class="num">${usd(f.cost/p.miles,2)}</span> per mile${pct!=null?`, <span class="num">${pct}%</span> of the rate`:''}.</p>`;
-   let prev=0;h+=`<ol class="trip"><li class="end"><b>${esc(l.origin)}</b><div class="mut">Start with ${110} gal</div></li>`;
-   stops.forEach((s,i)=>{h+=`<li class="leg num">${s.mile-prev} mi</li><li class="stop"><div class="sign"><span class="n num">${i+1}</span><div><div class="nm">${esc(s.station)}</div><div class="ct">${esc(town(s.city))}, ${esc(s.st)}, mile ${s.mile}</div></div><div class="q num"><b>${s.gallons} gal</b><br>${usd(s.price,3)}</div></div></li>`;prev=s.mile});
-   h+=`<li class="leg num">${Math.round(p.miles-prev)} mi</li><li class="end"><b>${esc(l.destination)}</b><div class="mut">${Math.round(p.hours*10)/10} h of driving in total</div></li></ol>`}
+   const sc=p.schedule,t0=pdt(l.pickup),at=x=>t0?` <span class="mut">${esc(clk(new Date(t0.getTime()+x*36e5)))}</span>`:'';
+   let prev=0;h+=`<ol class="trip"><li class="end"><b>${esc(l.origin)}</b><div class="mut">Start with ${110} gal${t0?', leaving '+esc(clk(t0)):''}</div></li>`;
+   const ev=sc?sc.events:stops.map(s=>({kind:'fuel',mile:s.mile,station:s.station,city:s.city,st:s.st,gallons:s.gallons,price:s.price}));let n=0;
+   ev.forEach(e=>{h+=`<li class="leg num">${Math.round(e.mile-prev)} mi</li>`;prev=e.mile;
+    if(e.kind==='fuel'){n++;h+=`<li class="stop"><div class="sign"><span class="n num">${n}</span><div><div class="nm">${esc(e.station)}</div><div class="ct">${esc(town(e.city))}, ${esc(e.st)}, mile ${e.mile}</div>${e.at!=null?`<div class="ct">Arrive after ${fh(e.at)}${at(e.at)}</div>`:''}</div><div class="q num"><b>${e.gallons} gal</b><br>${usd(e.price,3)}</div></div></li>`}
+    else h+=`<li class="stop rest"><div class="sign"><div><div class="nm">${e.kind==='rest'?'Rest 10 h':'Break 30 min'}</div><div class="ct">${e.kind==='rest'&&e.near?'Near '+esc(town(e.near.city))+', '+esc(e.near.st)+', ':''}mile ${e.mile}, after ${fh(e.at)} of the trip${at(e.at)}</div></div></div></li>`});
+   h+=`<li class="leg num">${Math.round(p.miles-prev)} mi</li><li class="end"><b>${esc(l.destination)}</b><div class="mut">${sc?'Arrive after '+fh(sc.total_h)+at(sc.total_h):Math.round(p.hours*10)/10+' h of driving in total'}</div></li></ol>`;
+   if(sc){const dd=pdt(l.delivery),arr=t0?new Date(t0.getTime()+sc.total_h*36e5):null;
+    h+=`<p class="fine" style="margin-top:12px"><b>${fh(sc.total_h)}</b> door to door: ${fh(sc.drive_h)} driving, ${fh(sc.fuel_h)} fuelling${sc.break_h?', '+fh(sc.break_h)+' breaks':''}${sc.sleeps?', '+fh(sc.rest_h)+' resting ('+sc.sleeps+' sleep'+(sc.sleeps>1?'s':'')+')':''}.${arr&&dd?(arr>dd?` <span class="tag bad">Late</span> Arrives ${esc(clk(arr))}, delivery is due ${esc(clk(dd))}.`:` <span class="tag ok">On time</span> Arrives ${esc(clk(arr))}, delivery is due ${esc(clk(dd))}.`):''}</p>`}}
   else h+=`<div class="callout">No fuel plan: only ${p.stations_on_route} priced stations are within 5 miles of this route. Refresh the United Fuel prices, then plan again.</div>`;
-  h+=`<p class="fine">${p.router&&p.router.startsWith('HERE')?'Routed for a truck (height, weight, length, axles).':'Routed as a car. Truck restrictions were not applied.'} Assumes 6.5 MPG, a 200 gal tank, a 30 gal reserve, and arriving with the 110 gal it started with. Prices are United Fuel discounted prices.</p>
+  h+=`<p class="fine">${p.router&&p.router.startsWith('HERE')?'Routed for a truck (height, weight, length, axles).':'Routed as a car. Truck restrictions were not applied.'} Assumes 6.5 MPG, a 200 gal tank, a 30 gal reserve, and arriving with the 110 gal it started with. Times assume one driver leaving at pickup time and follow US hours of service: 11 h driving, a 30 min break after 8 h, then 10 h rest. Estimates, not a legal log. Prices are United Fuel discounted prices.</p>
   <button class="btn sm quiet" onclick="panelPlan(this)" style="margin-top:6px">Plan again</button></div>`;
   h+=`<div class="sec"><h3>Share with the driver</h3><div class="share"><a class="btn main" href="${esc(p.nav)}" target="_blank" rel="noopener">Open in Google Maps</a>
    <button class="btn" onclick="copyTxt(this,'link')">Copy link</button><button class="btn" onclick="copyTxt(this,'msg')">Copy message</button><button class="btn" onclick="tg(this)">Send to Telegram</button></div>
    <div class="link"><input class="f" readonly value="${esc(p.nav)}" aria-label="Route link" onfocus="this.select()"></div>
-   <p class="fine">The link opens the route in the Maps app on a phone, with the fuel stops in order. Google Maps draws the road between stops for a car, so drivers of 53-foot trailers should check restrictions in a truck GPS app.</p></div>`;
+   <p class="fine">The link opens the route in the Maps app on a phone, with the fuel stops in order. The route was calculated for a truck. Google Maps only draws roads between the points in the link, as for a car, so the link includes extra points along the truck route to keep it on the same roads. For a 53-foot trailer, a truck GPS app is still safer.</p></div>`;
   body+=h}
  $('panel').innerHTML=`<div class="ph"><div>${plate(l.load)}<h2>${esc(l.broker||'Load '+l.load)}</h2><div class="sub">${esc(l.origin)} to ${esc(l.destination)}</div></div><button class="ibtn" onclick="closeP()" aria-label="Close">${X}</button></div><div class="pb">${body}</div>`}
-async function panelPlan(b){b.disabled=true;b.textContent='Planning...';const r=await doPlan(CUR);if(!r.ok){b.disabled=false;b.textContent='Plan fuel';alert2(r.j.message||r.j.detail||'Could not plan this load')}draw();paintP()}
+async function panelPlan(b){b.disabled=true;b.textContent='Planning...';const r=await doPlan(CUR);if(!r.ok){b.disabled=false;b.textContent='Plan fuel';}draw();paintP();if(!r.ok)alert2(ERR[CUR])}
 function alert2(t){const p=document.querySelector('.pb');if(!p)return;const d=document.createElement('div');d.className='callout';d.setAttribute('role','alert');d.textContent=t;p.prepend(d)}
 function copyTxt(b,kind){const l=LOADS.find(x=>x.load===CUR),p=l.plan;const t=kind==='link'?p.nav:driverMsg(l,p);const done=()=>{const o=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=o,1600)};
  if(navigator.clipboard&&isSecureContext)navigator.clipboard.writeText(t).then(done,fb);else fb();

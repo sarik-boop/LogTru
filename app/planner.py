@@ -1,6 +1,7 @@
 """Fuel planner: cheapest fuel stops along a route (DP over stations on the corridor).
 Logic taken from the validated analysis (6.5 MPG, 200 gal tank, 30 gal reserve)."""
 import math, os, httpx
+import hos
 from urllib.parse import quote
 
 MPG, TANK, RESERVE, START, MINFILL, STEP, CORRIDOR_MI = 6.5, 200, 30, 110, 50, 5, 5.0
@@ -126,9 +127,20 @@ def dp_fuel(total_mi, sts, start=START):
         cost = nxt
     return None
 
-def nav_url(origin, dest, stops):
-    """Google Maps directions link: origin, fuel stops as waypoints, destination. Opens in the Maps app on a phone."""
-    wp = "|".join(f"{s['lat']:.5f},{s['lng']:.5f}" for s in stops[:9] if s.get("lat") is not None)
+def route_points(pts, miles, k):
+    """k points spread evenly along the route polyline: (lat, lng, mile)."""
+    cm = [0.0]
+    for a, b in zip(pts, pts[1:]): cm.append(cm[-1] + hav(a, b))
+    tot, out, j = (cm[-1] or 1.0), [], 0
+    for n in range(1, k + 1):
+        target = tot * n / (k + 1)
+        while j < len(cm) - 1 and cm[j] < target: j += 1
+        out.append((pts[j][0], pts[j][1], cm[j] / tot * miles))
+    return out
+
+def nav_url(origin, dest, waypoints):
+    """Google Maps directions link (max 9 waypoints): fuel stops plus points on the truck route to keep Maps on the same roads."""
+    wp = "|".join(f"{la:.5f},{ln:.5f}" for la, ln in waypoints[:9])
     u = f"https://www.google.com/maps/dir/?api=1&origin={quote(origin)}&destination={quote(dest)}&travelmode=driving"
     return u + (f"&waypoints={quote(wp)}" if wp else "")
 
@@ -143,5 +155,10 @@ def plan(origin, dest, stations, key, start=START):
     scale = miles / poly_mi
     for s in sts: s["mile"] *= scale
     res = dp_fuel(miles, sts, start)
+    stops = res["plan"] if res else []
+    wps = [(s["lat"], s["lng"], s["mile"]) for s in stops if s.get("lat") is not None]
+    extra = [w for w in route_points(pts, miles, max(0, 9 - len(wps))) if all(abs(w[2] - x[2]) > 30 for x in wps)]
+    wps = sorted(wps + extra, key=lambda w: w[2])
+    sched = hos.schedule(miles, secs / 3600, stops, [dict(mile=s["mile"], name=s["name"], city=s["city"], st=s["st"]) for s in sts])
     return dict(miles=round(miles, 1), hours=round(secs/3600, 2), router=src, stations_on_route=len(sts), fuel=res,
-                nav=nav_url(origin, dest, res["plan"] if res else []))
+                schedule=sched, nav=nav_url(origin, dest, [(w[0], w[1]) for w in wps]))
