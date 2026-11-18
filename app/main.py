@@ -100,6 +100,26 @@ def import_trucks(rows: list[dict] = Body(...)):
                     c.execute("UPDATE trucks SET city=%s, st=%s WHERE unit=%s", (city, st, unit))
     return {"trucks": n, "located": placed}
 
+@app.post("/api/done/import")
+def import_done(rows: list[dict] = Body(...)):
+    """Completed loads from QuickManage, with the truck that hauled them. Also copies the status (Delivered, ...) onto the load."""
+    def d(s):
+        try: return dt.datetime.strptime(s[:10], "%m/%d/%Y").date()
+        except Exception: return None
+    n = upd = 0
+    with db.conn() as c:
+        for r in rows:
+            t = str(r.get("trip", "")).strip()
+            if not t: continue
+            c.execute("""INSERT INTO done_loads(trip,status,bill_to,origin,dest,o_time,d_time,pickup,delivery,empty_mi,loaded_mi,rate,truck,driver)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (trip) DO UPDATE SET status=EXCLUDED.status, truck=coalesce(nullif(EXCLUDED.truck,''), done_loads.truck),
+                driver=coalesce(nullif(EXCLUDED.driver,''), done_loads.driver), delivery=EXCLUDED.delivery, d_time=EXCLUDED.d_time, rate=EXCLUDED.rate, updated=now()""",
+                (t, r.get("status"), r.get("bill_to"), r.get("origin"), r.get("dest"), r.get("o_time"), r.get("d_time"), d(r.get("o_time") or ""), d(r.get("d_time") or ""),
+                 r.get("empty_mi"), r.get("loaded_mi"), r.get("rate"), r.get("truck"), r.get("driver"))); n += 1
+            if r.get("status"):
+                upd += c.execute("UPDATE loads SET status=%s WHERE load=%s AND status IS DISTINCT FROM %s", (r["status"], t, r["status"])).rowcount
+    return {"completed_loads": n, "statuses_updated": upd}
+
 @app.post("/api/fuel/import")
 def import_fuel(rows: list[dict] = Body(...)):
     """QuickManage fuel purchases. Re-sending the same purchase never duplicates it."""

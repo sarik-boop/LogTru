@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS trucks (unit text PRIMARY KEY, driver text, city text
 CREATE TABLE IF NOT EXISTS fuel_txns (key text PRIMARY KEY, tdate date NOT NULL, txn text, equip text, driver text, merchant text, city text, st text,
   gallons float, ppg float, diesel_amt float, def_amt float, fee float, total float, discount float, paid float, imported timestamptz DEFAULT now());
 CREATE INDEX IF NOT EXISTS fuel_txns_equip_date ON fuel_txns(equip, tdate);
+CREATE TABLE IF NOT EXISTS done_loads (trip text PRIMARY KEY, status text, bill_to text, origin text, dest text, o_time text, d_time text,
+  pickup date, delivery date, empty_mi float, loaded_mi float, rate float, truck text, driver text, updated timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS geo (q text PRIMARY KEY, lat float, lng float);
 """
 
