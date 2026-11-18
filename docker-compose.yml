@@ -20,6 +20,7 @@ services:
     profiles: ["robot"]          # not started by default: docker compose run --rm robot
   caddy:
     image: caddy:2
+    env_file: .env
     restart: unless-stopped
     ports: ["80:80", "443:443"]
     volumes:
